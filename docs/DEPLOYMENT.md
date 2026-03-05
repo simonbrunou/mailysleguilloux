@@ -3,228 +3,111 @@
 ## Architecture
 
 ```
-Internet
-    │
-    ▼
-Cloudflare Tunnel (cloudflared)
-    │
-    ▼ mailysleguilloux.bzh
-Caddy Reverse Proxy (192.168.1.10)
-    │
-    ▼ http://192.168.1.14:80
-LXC: mailysleguilloux (192.168.1.14)
-    └── Docker: Caddy serving static files
+GitHub (push to main)
+    |
+    v
+Cloudflare Pages (auto-deploy)
+    |
+    v  mailysleguilloux.bzh
+Cloudflare CDN (300+ edge locations)
+
+Cloudflare Worker (mailysleguilloux-reviews)
+    |
+    v
+Google Places API (cached in KV)
 ```
 
 ---
 
-## 1. Create the LXC
+## 1. Deploy to Cloudflare Pages
 
-### Via Proxmox UI
+### Option A: Git integration (recommended)
 
-1. Create CT with these settings:
-   - **CT ID**: 114 (or next available)
-   - **Hostname**: `mailysleguilloux`
-   - **Template**: `debian-12-standard`
-   - **Disk**: 4 GB
-   - **CPU**: 1 core
-   - **Memory**: 512 MB
-   - **Network**: 
-     - Bridge: `vmbr0`
-     - IPv4: `192.168.1.14/24`
-     - Gateway: `192.168.1.1`
+1. Push your repo to GitHub
+2. Go to **Cloudflare Dashboard** > **Workers & Pages** > **Create** > **Pages**
+3. Connect your GitHub repository
+4. Configure build settings:
+   - **Project name**: `mailysleguilloux`
+   - **Production branch**: `main`
+   - **Build command**: (leave empty)
+   - **Build output directory**: `site`
+5. Click **Save and Deploy**
 
-2. Enable features for Docker:
-   ```bash
-   # On Proxmox host
-   pct set 114 --features nesting=1
-   ```
+Every push to `main` auto-deploys.
 
-### Via CLI (on Proxmox host)
+### Option B: Direct upload via CLI
 
 ```bash
-# Download template if needed
-pveam download local debian-12-standard_12.2-1_amd64.tar.zst
-
-# Create container
-pct create 114 local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst \
-  --hostname mailysleguilloux \
-  --memory 512 \
-  --cores 1 \
-  --rootfs local-lvm:4 \
-  --net0 name=eth0,bridge=vmbr0,ip=192.168.1.14/24,gw=192.168.1.1 \
-  --features nesting=1 \
-  --unprivileged 1 \
-  --start 1
-
-# Start container
-pct start 114
+npx wrangler pages deploy site --project-name=mailysleguilloux
 ```
 
 ---
 
-## 2. Setup the LXC
+## 2. Custom Domain
 
-```bash
-# Enter the container
-pct enter 114
+1. In Cloudflare Pages project > **Custom domains**
+2. Add `mailysleguilloux.bzh`
+3. Cloudflare auto-configures DNS (CNAME to Pages)
+4. Add `www.mailysleguilloux.bzh` as well (redirects to apex)
 
-# Update system
-apt update && apt upgrade -y
+DNS records (auto-managed by Pages):
 
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-apt install -y docker-compose-plugin git
-
-# Create directory structure
-mkdir -p /opt/mailysleguilloux
-cd /opt/mailysleguilloux
-
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/mailysleguilloux.bzh.git .
-
-# Download images (run once)
-chmod +x scripts/download-images.sh
-./scripts/download-images.sh
-
-# Start the stack
-docker compose up -d
-
-# Verify it's running
-curl -s localhost | head -20
-```
+| Type  | Name | Content                          | Proxy     |
+|-------|------|----------------------------------|-----------|
+| CNAME | @    | `mailysleguilloux.pages.dev`     | Proxied   |
+| CNAME | www  | `mailysleguilloux.pages.dev`     | Proxied   |
 
 ---
 
-## 3. Add to Komodo
+## 3. Deploy the Reviews Worker
 
-### Add the server
+The reviews Worker fetches Google reviews dynamically.
 
-In Komodo UI or via CLI:
+### Prerequisites
 
-```bash
-komodo server create \
-  --name mailysleguilloux \
-  --address 192.168.1.14 \
-  --port 22 \
-  --username root
-```
+- Google Cloud project with Places API enabled
+- Google Place ID for the business
+- API key with Places API access
 
-### Deploy the stack
+### Setup
 
 ```bash
-komodo stack deploy \
-  --name mailysleguilloux \
-  --server mailysleguilloux \
-  --repo https://github.com/YOUR_USERNAME/mailysleguilloux.bzh.git \
-  --branch main \
-  --run-directory /opt/mailysleguilloux \
-  --webhook-enabled
+cd worker
+
+# Install dependencies
+npm install
+
+# Authenticate with Cloudflare
+npx wrangler login
+
+# Update PLACE_ID in wrangler.toml
+
+# Create KV namespace for caching
+npx wrangler kv namespace create REVIEWS_CACHE
+# Add the returned binding to wrangler.toml:
+# [[kv_namespaces]]
+# binding = "REVIEWS_CACHE"
+# id = "<id-from-output>"
+
+# Set the Google API key as a secret
+npx wrangler secret put GOOGLE_API_KEY
+
+# Deploy
+npx wrangler deploy
 ```
 
-Or import from `komodo.toml` in the repo.
+Then update the `REVIEWS_WORKER_URL` in `site/index.html` with the Worker URL.
 
 ---
 
-## 4. Configure Reverse Proxy (Existing Caddy)
-
-Add to your main Caddy configuration (on 192.168.1.10 or your proxy LXC):
-
-### Option A: Direct file in Caddyfile
-
-```caddyfile
-# mailysleguilloux.bzh - Static site
-mailysleguilloux.bzh {
-    reverse_proxy 192.168.1.14:80
-    
-    encode gzip zstd
-    
-    header {
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "SAMEORIGIN"
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    }
-}
-```
-
-### Option B: Separate config file (if using conf.d pattern)
-
-Create `/opt/caddy/conf.d/mailysleguilloux.caddyfile`:
-
-```caddyfile
-mailysleguilloux.bzh {
-    reverse_proxy 192.168.1.14:80
-    encode gzip zstd
-}
-```
-
-Then reload Caddy:
-```bash
-docker exec caddy caddy reload --config /etc/caddy/Caddyfile
-```
-
----
-
-## 5. Configure Cloudflare Tunnel
-
-### Via Cloudflare Dashboard (Zero Trust)
-
-1. Go to **Zero Trust** → **Networks** → **Tunnels**
-2. Select your existing tunnel
-3. Click **Configure** → **Public Hostname**
-4. Add new hostname:
-   - **Subdomain**: (leave empty for apex)
-   - **Domain**: `mailysleguilloux.bzh`
-   - **Service**: `http://192.168.1.10:80` (your Caddy reverse proxy)
-
-### Via cloudflared config file
-
-Add to your `config.yml`:
-
-```yaml
-ingress:
-  # ... existing rules ...
-  
-  - hostname: mailysleguilloux.bzh
-    service: http://192.168.1.10:80
-  
-  # Catch-all (must be last)
-  - service: http_status:404
-```
-
-Then restart cloudflared:
-```bash
-systemctl restart cloudflared
-# or
-docker restart cloudflared
-```
-
----
-
-## 6. DNS Configuration
-
-In Cloudflare DNS for `mailysleguilloux.bzh`:
-
-| Type | Name | Content | Proxy |
-|------|------|---------|-------|
-| CNAME | @ | `<tunnel-id>.cfargotunnel.com` | Proxied ✓ |
-| CNAME | www | `mailysleguilloux.bzh` | Proxied ✓ |
-
-The tunnel ID is shown in your Cloudflare Tunnel dashboard.
-
----
-
-## 7. Verify Deployment
+## 4. Verify Deployment
 
 ```bash
-# Test locally on the LXC
-curl -I http://192.168.1.14
-
-# Test via reverse proxy
-curl -I http://192.168.1.10 -H "Host: mailysleguilloux.bzh"
-
-# Test externally (after DNS propagation)
+# Test the site
 curl -I https://mailysleguilloux.bzh
+
+# Test the reviews Worker
+curl https://mailysleguilloux-reviews.<subdomain>.workers.dev
 ```
 
 Expected response:
@@ -235,75 +118,60 @@ content-type: text/html; charset=utf-8
 
 ---
 
-## 8. Setup Webhook (Auto-deploy on Git Push)
-
-### Get webhook URL from Komodo
+## Local Development
 
 ```bash
-komodo stack info mailysleguilloux
-# Look for webhook_url
+cd site
+python3 -m http.server 8080
+# Open http://localhost:8080
 ```
-
-### Add to GitHub
-
-1. Go to repo **Settings** → **Webhooks**
-2. Add webhook:
-   - **Payload URL**: `https://your-komodo-url/api/webhook/stack/mailysleguilloux`
-   - **Content type**: `application/json`
-   - **Secret**: (from Komodo if configured)
-   - **Events**: Just the `push` event
-
-Now any push to `main` will auto-deploy!
 
 ---
 
 ## Maintenance
 
-### Manual deploy
+### Redeploy manually (if not using Git integration)
+
 ```bash
-ssh root@192.168.1.14
-cd /opt/mailysleguilloux
-git pull
-docker compose up -d
+npx wrangler pages deploy site --project-name=mailysleguilloux
 ```
 
-### View logs
+### Update the reviews Worker
+
 ```bash
-docker logs -f mailysleguilloux-web
+cd worker
+npx wrangler deploy
 ```
 
-### Update Caddy image
-```bash
-docker compose pull
-docker compose up -d
-```
+### View deployment logs
+
+In Cloudflare Dashboard > **Workers & Pages** > **mailysleguilloux** > **Deployments**
 
 ---
 
 ## Troubleshooting
 
-### Site not accessible
+### Site not updating after push
+
+- Check Cloudflare Pages deployment status in the dashboard
+- Verify the build output directory is set to `site`
+- Check GitHub webhook delivery in repo Settings > Webhooks
+
+### Reviews not loading
+
 ```bash
-# Check container is running
-docker ps
+# Test Worker directly
+curl -v https://mailysleguilloux-reviews.<subdomain>.workers.dev
 
-# Check Caddy logs
-docker logs mailysleguilloux-web
-
-# Check reverse proxy can reach it
-curl -v http://192.168.1.14
+# Check Worker logs
+npx wrangler tail --name mailysleguilloux-reviews
 ```
 
 ### DNS not resolving
-```bash
-# Check DNS propagation
-dig mailysleguilloux.bzh
 
-# Verify Cloudflare tunnel
-cloudflared tunnel info <tunnel-name>
+```bash
+dig mailysleguilloux.bzh
+# Should return Cloudflare IPs
 ```
 
-### 502 Bad Gateway
-- Verify LXC IP is correct in reverse proxy config
-- Check firewall rules allow traffic on port 80
-- Ensure Docker container is running
+If DNS doesn't resolve, verify the custom domain is configured in Pages settings.
