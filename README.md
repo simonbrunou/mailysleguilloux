@@ -1,28 +1,33 @@
 # mailysleguilloux.bzh
 
-Static website for Maïlys Le Guilloux - Guérisseuse et Kinésiologue.
+Static website for Mailys Le Guilloux - Guerisseuse et Kinesiologue.
 
 ## Deployment
 
-This site is deployed via Komodo with Git webhooks.
+Hosted on **Cloudflare Pages** with auto-deploy from GitHub.
 
 ### Infrastructure
 
-- **LXC**: `mailysleguilloux` (192.168.1.XX)
-- **Reverse Proxy**: Existing Caddy on 192.168.1.10 (or dedicated proxy LXC)
-- **External Access**: Cloudflare Tunnel → mailysleguilloux.bzh
+- **Site**: Cloudflare Pages (static files from `site/`)
+- **Reviews API**: Cloudflare Worker fetching Google Places reviews
+- **Domain**: `mailysleguilloux.bzh` (DNS managed by Cloudflare)
 
 ### Files
 
 ```
-├── site/                 # Website files
-│   ├── index.html
-│   ├── sitemap.xml
-│   ├── robots.txt
-│   └── images/          # Add images here
-├── docker-compose.yml    # Caddy static server
-├── Caddyfile            # Caddy config
-└── komodo.toml          # Komodo stack config
+site/                     # Website files (Pages build output)
+  index.html
+  sitemap.xml
+  robots.txt
+  images/                 # Images (served from CDN)
+worker/                   # Cloudflare Worker for Google reviews
+  src/index.js
+  wrangler.toml
+  package.json
+scripts/
+  download-images.sh      # Download images from Wix (run once)
+docs/
+  DEPLOYMENT.md           # Full deployment guide
 ```
 
 ## Local Development
@@ -33,11 +38,13 @@ python3 -m http.server 8080
 # Open http://localhost:8080
 ```
 
-## Manual Deployment
+## Deploy
 
+Push to `main` to auto-deploy via Cloudflare Pages.
+
+Manual deploy:
 ```bash
-ssh root@192.168.1.XX
-cd /opt/mailysleguilloux
-git pull
-docker compose up -d
+npx wrangler pages deploy site --project-name=mailysleguilloux
 ```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup instructions.
