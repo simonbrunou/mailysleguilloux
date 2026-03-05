@@ -423,19 +423,14 @@
     }
 
     .service-image {
-        aspect-ratio: 1;
+        aspect-ratio: 4/3;
         overflow: hidden;
     }
 
-    .service-image img,
-    .service-image .photo-placeholder {
+    .service-image img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-    }
-
-    .service-image .photo-placeholder {
-        aspect-ratio: auto;
     }
 
     .service-content {
@@ -598,15 +593,10 @@
         gap: 1rem;
     }
 
-    .cabinet-gallery img,
-    .cabinet-gallery .photo-placeholder {
+    .cabinet-gallery img {
         width: 100%;
         aspect-ratio: 1;
         object-fit: cover;
-    }
-
-    .cabinet-gallery .photo-placeholder {
-        font-size: 0.8rem;
     }
 
     /* Contact */
@@ -900,7 +890,7 @@
             <div class="services-grid">
                 <article class="service-card">
                     <div class="service-image">
-                        <img src="images/prestation-humains.jpg" alt="Séance de kinésiologie" loading="lazy" width="400" height="400" onerror="this.style.display='none'">
+                        <img src="images/prestation-humains.jpg" alt="Séance de kinésiologie" loading="lazy" onerror="this.style.display='none'">
                     </div>
                     <div class="service-content">
                         <h3>Séances de kinésiologie pour les humains</h3>
@@ -918,7 +908,7 @@
                 
                 <article class="service-card">
                     <div class="service-image">
-                        <img src="images/prestation-animaux.jpg" alt="Communication animale" loading="lazy" width="400" height="400" onerror="this.style.display='none'">
+                        <img src="images/prestation-animaux.jpg" alt="Communication animale" loading="lazy" onerror="this.style.display='none'">
                     </div>
                     <div class="service-content">
                         <h3>Communication animale et soins pour les animaux</h3>
@@ -1001,10 +991,10 @@
             </div>
             
             <div class="cabinet-gallery">
-                <img src="images/cabinet-1.jpg" alt="Cabinet de kinésiologie" loading="lazy" width="300" height="300" onerror="this.style.display='none'">
-                <img src="images/cabinet-2.jpg" alt="Espace de soin" loading="lazy" width="300" height="300" onerror="this.style.display='none'">
-                <img src="images/cabinet-3.jpg" alt="Ambiance du cabinet" loading="lazy" width="300" height="300" onerror="this.style.display='none'">
-                <img src="images/cabinet-4.jpg" alt="Détail du cabinet" loading="lazy" width="300" height="300" onerror="this.style.display='none'">
+                <img src="images/cabinet-1.jpg" alt="Cabinet de kinésiologie" loading="lazy" onerror="this.style.display='none'">
+                <img src="images/cabinet-2.jpg" alt="Espace de soin" loading="lazy" onerror="this.style.display='none'">
+                <img src="images/cabinet-3.jpg" alt="Ambiance du cabinet" loading="lazy" onerror="this.style.display='none'">
+                <img src="images/cabinet-4.jpg" alt="Détail du cabinet" loading="lazy" onerror="this.style.display='none'">
             </div>
         </div>
     </section>
