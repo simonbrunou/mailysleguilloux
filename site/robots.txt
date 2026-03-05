@@ -1,0 +1,7 @@
+# robots.txt for mailysleguilloux.bzh
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://mailysleguilloux.bzh/sitemap.xml
