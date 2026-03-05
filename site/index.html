@@ -1239,97 +1239,127 @@
 
     // Testimonials Slider
     (function() {
+        const REVIEWS_WORKER_URL = 'https://mailysleguilloux-reviews.YOUR_SUBDOMAIN.workers.dev';
         const track = document.getElementById('testimonials-track');
         const nav = document.getElementById('testimonials-nav');
         const arrowsContainer = document.getElementById('testimonials-arrows');
-        const slides = track.querySelectorAll('.testimonial-slide');
-        const slideCount = slides.length;
         let currentSlide = 0;
         let autoplayInterval;
 
-        // Only initialize slider if more than one testimonial
-        if (slideCount <= 1) {
-            nav.style.display = 'none';
-            return;
+        function createSlideHTML(review) {
+            const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+            const text = review.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const author = review.author.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<div class="testimonial-slide">
+                <blockquote>${text}</blockquote>
+                <cite>— ${author}</cite>
+                <div class="stars" aria-label="${review.rating} étoiles sur 5">${stars}</div>
+            </div>`;
         }
 
-        // Show arrows if multiple slides
-        arrowsContainer.style.display = 'flex';
+        function initSlider() {
+            const slides = track.querySelectorAll('.testimonial-slide');
+            const slideCount = slides.length;
+            currentSlide = 0;
 
-        // Create navigation dots
-        slides.forEach((_, index) => {
-            const dot = document.createElement('button');
-            dot.type = 'button';
-            dot.setAttribute('aria-label', `Témoignage ${index + 1}`);
-            if (index === 0) dot.classList.add('active');
-            dot.addEventListener('click', () => goToSlide(index));
-            nav.appendChild(dot);
-        });
+            nav.innerHTML = '';
 
-        const dots = nav.querySelectorAll('button');
-
-        function goToSlide(index) {
-            currentSlide = index;
-            track.style.transform = `translateX(-${currentSlide * 100}%)`;
-            dots.forEach((dot, i) => {
-                dot.classList.toggle('active', i === currentSlide);
-            });
-        }
-
-        function nextSlide() {
-            goToSlide((currentSlide + 1) % slideCount);
-        }
-
-        function prevSlide() {
-            goToSlide((currentSlide - 1 + slideCount) % slideCount);
-        }
-
-        // Arrow buttons
-        document.getElementById('next-testimonial').addEventListener('click', () => {
-            nextSlide();
-            resetAutoplay();
-        });
-
-        document.getElementById('prev-testimonial').addEventListener('click', () => {
-            prevSlide();
-            resetAutoplay();
-        });
-
-        // Autoplay
-        function startAutoplay() {
-            autoplayInterval = setInterval(nextSlide, 5000);
-        }
-
-        function resetAutoplay() {
-            clearInterval(autoplayInterval);
-            startAutoplay();
-        }
-
-        // Start autoplay
-        startAutoplay();
-
-        // Pause on hover
-        track.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
-        track.addEventListener('mouseleave', startAutoplay);
-
-        // Touch/swipe support
-        let touchStartX = 0;
-        let touchEndX = 0;
-
-        track.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-
-        track.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > 50) {
-                nextSlide();
-                resetAutoplay();
-            } else if (touchEndX - touchStartX > 50) {
-                prevSlide();
-                resetAutoplay();
+            if (slideCount <= 1) {
+                nav.style.display = 'none';
+                arrowsContainer.style.display = 'none';
+                return;
             }
-        }, { passive: true });
+
+            arrowsContainer.style.display = 'flex';
+
+            slides.forEach((_, index) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.setAttribute('aria-label', `Témoignage ${index + 1}`);
+                if (index === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => goToSlide(index));
+                nav.appendChild(dot);
+            });
+
+            function goToSlide(index) {
+                currentSlide = index;
+                track.style.transform = `translateX(-${currentSlide * 100}%)`;
+                nav.querySelectorAll('button').forEach((dot, i) => {
+                    dot.classList.toggle('active', i === currentSlide);
+                });
+            }
+
+            function nextSlide() {
+                goToSlide((currentSlide + 1) % slideCount);
+            }
+
+            function prevSlide() {
+                goToSlide((currentSlide - 1 + slideCount) % slideCount);
+            }
+
+            document.getElementById('next-testimonial').onclick = () => { nextSlide(); resetAutoplay(); };
+            document.getElementById('prev-testimonial').onclick = () => { prevSlide(); resetAutoplay(); };
+
+            function startAutoplay() {
+                autoplayInterval = setInterval(nextSlide, 5000);
+            }
+
+            function resetAutoplay() {
+                clearInterval(autoplayInterval);
+                startAutoplay();
+            }
+
+            startAutoplay();
+
+            track.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
+            track.addEventListener('mouseleave', startAutoplay);
+
+            let touchStartX = 0;
+            track.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            track.addEventListener('touchend', e => {
+                const touchEndX = e.changedTouches[0].screenX;
+                if (touchStartX - touchEndX > 50) { nextSlide(); resetAutoplay(); }
+                else if (touchEndX - touchStartX > 50) { prevSlide(); resetAutoplay(); }
+            }, { passive: true });
+        }
+
+        // Initialize with hardcoded reviews first
+        initSlider();
+
+        // Then try to fetch fresh reviews from the Worker
+        fetch(REVIEWS_WORKER_URL)
+            .then(r => r.json())
+            .then(data => {
+                if (data.reviews && data.reviews.length > 0) {
+                    track.innerHTML = data.reviews.map(createSlideHTML).join('');
+                    track.style.transform = 'translateX(0)';
+                    initSlider();
+
+                    // Update JSON-LD structured data
+                    const ldScript = document.querySelector('script[type="application/ld+json"]');
+                    if (ldScript) {
+                        const ld = JSON.parse(ldScript.textContent);
+                        ld.aggregateRating = {
+                            "@type": "AggregateRating",
+                            "ratingValue": String(data.rating),
+                            "bestRating": "5",
+                            "worstRating": "1",
+                            "ratingCount": String(data.totalReviews)
+                        };
+                        ld.review = data.reviews.map(r => ({
+                            "@type": "Review",
+                            "author": { "@type": "Person", "name": r.author },
+                            "reviewRating": { "@type": "Rating", "ratingValue": String(r.rating) },
+                            "reviewBody": r.text
+                        }));
+                        ldScript.textContent = JSON.stringify(ld);
+                    }
+                }
+            })
+            .catch(() => {}); // Keep hardcoded reviews on failure
     })();
 </script>
 

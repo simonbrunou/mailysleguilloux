@@ -1,0 +1,14 @@
+name = "mailysleguilloux-reviews"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+[vars]
+# Your Google Place ID - find it at:
+# https://developers.google.com/maps/documentation/places/web-service/place-id
+# Search for "Maïlys Le Guilloux" on Google Maps, then use the Place ID Finder
+PLACE_ID = "CHANGE_ME"
+ALLOWED_ORIGIN = "https://mailysleguilloux.bzh"
+CACHE_TTL = "86400" # 24 hours in seconds
+
+# The Google API key must be set as a secret:
+# npx wrangler secret put GOOGLE_API_KEY
