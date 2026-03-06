@@ -1,2 +1,0 @@
-# Redirect www to apex domain (301 permanent)
-https://www.mailysleguilloux.bzh/* https://mailysleguilloux.bzh/:splat 301
