@@ -42,9 +42,11 @@
     <link rel="icon" type="image/avif" href="/images/favicon.avif">
     <meta name="theme-color" content="#D4A5A5">
 
-    <!-- Fonts -->
+    <!-- Preload critical resources -->
+    <link rel="preload" href="images/mailys.webp" as="image" type="image/webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Raleway:wght@300;400;500&display=swap" as="style">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Raleway:wght@300;400;500&display=swap" rel="stylesheet">
 
     <style>
@@ -594,6 +596,7 @@
         gap: 1rem;
     }
 
+    .cabinet-gallery picture,
     .cabinet-gallery img {
         width: 100%;
         aspect-ratio: 1;
@@ -869,7 +872,10 @@
                 </div>
                 <div class="hero-image">
                     <div class="hero-image-wrapper">
-                        <img src="images/mailys.jpg" alt="Maïlys Le Guilloux, guérisseuse et kinésiologue à Vannes" width="380" height="543" onerror="this.style.display='none'">
+                        <picture>
+                            <source srcset="images/mailys.webp" type="image/webp">
+                            <img src="images/mailys.jpg" alt="Maïlys Le Guilloux, guérisseuse et kinésiologue à Vannes" width="380" height="543" fetchpriority="high" onerror="this.style.display='none'">
+                        </picture>
                     </div>
                 </div>
             </div>
@@ -891,7 +897,10 @@
             <div class="services-grid">
                 <article class="service-card">
                     <div class="service-image">
-                        <img src="images/prestation-humains.jpg" alt="Séance de kinésiologie" loading="lazy" onerror="this.style.display='none'">
+                        <picture>
+                            <source srcset="images/prestation-humains.webp" type="image/webp">
+                            <img src="images/prestation-humains.jpg" alt="Séance de kinésiologie" loading="lazy" onerror="this.style.display='none'">
+                        </picture>
                     </div>
                     <div class="service-content">
                         <h3>Séances de kinésiologie pour les humains</h3>
@@ -909,7 +918,10 @@
                 
                 <article class="service-card">
                     <div class="service-image">
-                        <img src="images/prestation-animaux.jpg" alt="Communication animale" loading="lazy" onerror="this.style.display='none'">
+                        <picture>
+                            <source srcset="images/prestation-animaux.webp" type="image/webp">
+                            <img src="images/prestation-animaux.jpg" alt="Communication animale" loading="lazy" onerror="this.style.display='none'">
+                        </picture>
                     </div>
                     <div class="service-content">
                         <h3>Communication animale et soins pour les animaux</h3>
@@ -992,10 +1004,22 @@
             </div>
             
             <div class="cabinet-gallery">
-                <img src="images/cabinet-1.jpg" alt="Cabinet de kinésiologie" loading="lazy" onerror="this.style.display='none'">
-                <img src="images/cabinet-2.jpg" alt="Espace de soin" loading="lazy" onerror="this.style.display='none'">
-                <img src="images/cabinet-3.jpg" alt="Ambiance du cabinet" loading="lazy" onerror="this.style.display='none'">
-                <img src="images/cabinet-4.jpg" alt="Détail du cabinet" loading="lazy" onerror="this.style.display='none'">
+                <picture>
+                    <source srcset="images/cabinet-1.webp" type="image/webp">
+                    <img src="images/cabinet-1.jpg" alt="Cabinet de kinésiologie" loading="lazy" onerror="this.style.display='none'">
+                </picture>
+                <picture>
+                    <source srcset="images/cabinet-2.webp" type="image/webp">
+                    <img src="images/cabinet-2.jpg" alt="Espace de soin" loading="lazy" onerror="this.style.display='none'">
+                </picture>
+                <picture>
+                    <source srcset="images/cabinet-3.webp" type="image/webp">
+                    <img src="images/cabinet-3.jpg" alt="Ambiance du cabinet" loading="lazy" onerror="this.style.display='none'">
+                </picture>
+                <picture>
+                    <source srcset="images/cabinet-4.webp" type="image/webp">
+                    <img src="images/cabinet-4.jpg" alt="Détail du cabinet" loading="lazy" onerror="this.style.display='none'">
+                </picture>
             </div>
         </div>
     </section>
