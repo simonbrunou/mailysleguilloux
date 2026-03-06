@@ -1,0 +1,13 @@
+name = "mailysleguilloux-contact"
+main = "src/index.js"
+compatibility_date = "2025-09-27"
+
+[vars]
+ALLOWED_ORIGIN = "https://mailysleguilloux.bzh"
+TO_EMAIL = "contact@mailysleguilloux.bzh"
+FROM_EMAIL = "Formulaire de contact <noreply@mailysleguilloux.bzh>"
+
+# Secret — set once via CLI, never stored in this file:
+#   wrangler secret put RESEND_API_KEY
+# Get your free key at https://resend.com (3 000 emails/month free)
+# You must also verify the domain "mailysleguilloux.bzh" in your Resend dashboard.

@@ -731,6 +731,30 @@
         background: var(--color-accent-dark);
     }
 
+    .btn-submit:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .form-feedback {
+        margin-top: 1rem;
+        padding: 0.9rem 1rem;
+        font-size: 0.9rem;
+        display: none;
+    }
+
+    .form-feedback.success {
+        background: #f0faf4;
+        border: 1px solid #86efac;
+        color: #166534;
+    }
+
+    .form-feedback.error {
+        background: #fff5f5;
+        border: 1px solid #fca5a5;
+        color: #991b1b;
+    }
+
     /* Footer */
     footer {
         background: var(--color-dark);
@@ -1058,7 +1082,7 @@
                 </div>
                 
                 <div class="contact-form">
-                    <form action="mailto:contact@mailysleguilloux.bzh" method="POST" enctype="text/plain">
+                    <form id="contact-form" novalidate>
                         <div class="form-group">
                             <label for="name">Nom</label>
                             <input type="text" id="name" name="name" required autocomplete="name">
@@ -1076,6 +1100,7 @@
                             <textarea id="message" name="message" required></textarea>
                         </div>
                         <button type="submit" class="btn-submit">Envoyer</button>
+                        <div id="form-feedback" class="form-feedback" role="alert" aria-live="polite"></div>
                     </form>
                 </div>
             </div>
@@ -1375,6 +1400,71 @@
                 }
             })
             .catch(() => {}); // Keep hardcoded reviews on failure
+    })();
+</script>
+
+<script>
+    /* Contact form — sends to Cloudflare Worker which forwards by e-mail */
+    (function () {
+        var WORKER_URL = 'https://mailysleguilloux-contact.mailysleguilloux.workers.dev';
+
+        var form     = document.getElementById('contact-form');
+        var feedback = document.getElementById('form-feedback');
+        var btn      = form ? form.querySelector('button[type="submit"]') : null;
+
+        if (!form) return;
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            var name    = form.querySelector('#name').value.trim();
+            var email   = form.querySelector('#email').value.trim();
+            var subject = form.querySelector('#subject').value.trim();
+            var message = form.querySelector('#message').value.trim();
+
+            // Basic client-side validation
+            if (!name || !email || !message) {
+                showFeedback('error', 'Veuillez remplir les champs obligatoires (nom, e-mail, message).');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Envoi en cours…';
+            hideFeedback();
+
+            fetch(WORKER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, email: email, subject: subject, message: message })
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.ok) {
+                    showFeedback('success', 'Votre message a bien été envoyé. Je vous répondrai dans les plus brefs délais.');
+                    form.reset();
+                } else {
+                    showFeedback('error', data.message || 'Une erreur est survenue. Veuillez réessayer ou me contacter par e-mail directement.');
+                }
+            })
+            .catch(function () {
+                showFeedback('error', 'Impossible d\'envoyer le message. Veuillez réessayer ou me contacter par e-mail directement.');
+            })
+            .finally(function () {
+                btn.disabled = false;
+                btn.textContent = 'Envoyer';
+            });
+        });
+
+        function showFeedback(type, text) {
+            feedback.className = 'form-feedback ' + type;
+            feedback.textContent = text;
+            feedback.style.display = 'block';
+        }
+
+        function hideFeedback() {
+            feedback.style.display = 'none';
+            feedback.className = 'form-feedback';
+        }
     })();
 </script>
 
