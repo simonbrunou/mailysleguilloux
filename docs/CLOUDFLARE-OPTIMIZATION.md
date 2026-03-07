@@ -137,5 +137,5 @@ If you add a contact form later, use Turnstile instead of reCAPTCHA:
 - Runs on Cloudflare's edge
 - Integrates with Workers for server-side validation
 
-### Workers KV (Already Used)
-Your reviews worker already uses KV for caching Google Places reviews. This is optimal — 24h TTL avoids hitting the Google API too often.
+### Workers KV
+KV can be used for caching data at Cloudflare's edge with configurable TTL.
