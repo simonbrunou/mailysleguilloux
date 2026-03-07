@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page introuvable · Maïlys Le Guilloux</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/avif" href="/images/favicon.avif">
+    <meta name="theme-color" content="#D4A5A5">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Raleway:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #FFFFFF;
+            --color-bg-alt: #FDF8F8;
+            --color-text: #5C5C5C;
+            --color-accent: #D4A5A5;
+            --color-accent-dark: #C48B8B;
+            --color-accent-light: #F5E6E6;
+            --color-dark: #3D3D3D;
+            --font-display: 'Cormorant Garamond', Georgia, serif;
+            --font-body: 'Raleway', sans-serif;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            font-weight: 300;
+            font-size: 1rem;
+            line-height: 1.8;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-weight: 400;
+            font-size: clamp(2.2rem, 6vw, 3.5rem);
+            color: var(--color-dark);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .divider {
+            width: 60px;
+            height: 2px;
+            background-color: var(--color-accent);
+            margin: 1.5rem auto;
+        }
+
+        p {
+            max-width: 480px;
+            margin-bottom: 1rem;
+        }
+
+        a {
+            color: var(--color-accent-dark);
+            text-decoration: none;
+            font-weight: 400;
+            border-bottom: 1px solid var(--color-accent-light);
+            transition: border-color 0.3s ease;
+        }
+
+        a:hover {
+            border-color: var(--color-accent-dark);
+        }
+
+        .code {
+            font-family: var(--font-display);
+            font-size: clamp(5rem, 15vw, 8rem);
+            color: var(--color-accent-light);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="code">404</div>
+    <h1>Page introuvable</h1>
+    <div class="divider"></div>
+    <p>La page que vous recherchez n'existe pas ou a été déplacée.</p>
+    <p><a href="/">Retourner à l'accueil</a></p>
+</body>
+</html>
