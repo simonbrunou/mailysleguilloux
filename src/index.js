@@ -18,18 +18,63 @@ export default {
       headers.set("etag", object.httpEtag);
       headers.set("cache-control", "public, max-age=31536000, immutable");
 
+      // Content-Type fallback for R2 objects uploaded without metadata
+      if (!headers.get("content-type")) {
+        const ext = key.split(".").pop()?.toLowerCase();
+        const mimeTypes = {
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          png: "image/png",
+          webp: "image/webp",
+          svg: "image/svg+xml",
+          gif: "image/gif",
+          avif: "image/avif",
+        };
+        headers.set("content-type", mimeTypes[ext] || "application/octet-stream");
+      }
+
+      // Security header (not covered by _headers for R2 responses)
+      headers.set("x-content-type-options", "nosniff");
+
       return new Response(object.body, { headers });
+    }
+
+    // CORS preflight for /contact
+    if (url.pathname === "/contact" && request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "https://mailysleguilloux.bzh",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Max-Age": "86400",
+        },
+      });
     }
 
     if (url.pathname === "/contact" && request.method === "POST") {
       return handleContact(request, env);
     }
 
-    return env.ASSETS.fetch(request);
+    // With run_worker_first, only /images/* and /contact reach the Worker.
+    // Any other path here is unexpected — return 404.
+    return new Response("Not Found", { status: 404 });
   },
 };
 
 async function handleContact(request, env) {
+  // Rate limiting: 1 submission per IP per 60 seconds
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  const cacheKey = new Request(`https://rate-limit.internal/contact/${ip}`);
+  const cache = caches.default;
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    return jsonResponse(
+      { ok: false, message: "Veuillez patienter avant de renvoyer un message." },
+      429
+    );
+  }
+
   let body;
   try {
     body = await request.json();
@@ -96,12 +141,21 @@ async function handleContact(request, env) {
     return jsonResponse({ ok: false, message: "Erreur lors de l'envoi de l'e-mail." }, 502);
   }
 
+  // Store rate limit marker after successful send
+  const rateResponse = new Response("1", {
+    headers: { "Cache-Control": "public, max-age=60" },
+  });
+  await cache.put(cacheKey, rateResponse);
+
   return jsonResponse({ ok: true, message: "Message envoyé avec succès." }, 200);
 }
 
 function jsonResponse(data, status) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "https://mailysleguilloux.bzh",
+    },
   });
 }

@@ -1,20 +1,15 @@
 # ===========================================
-# Cloudflare Pages Custom Headers
+# Cloudflare Workers Static Assets Headers
 # ===========================================
 
-# Global security & performance headers
+# Global security headers
 /*
   X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
+  X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  X-XSS-Protection: 1; mode=block
 
-# Immutable cache for hashed/static assets (images, fonts)
-/images/*
-  Cache-Control: public, max-age=31536000, immutable
-
-# HTML - short cache, always revalidate
+# Homepage - short cache + preload hints
 /
   Cache-Control: public, max-age=3600, must-revalidate
   Link: </images/mailys.webp>; rel=preload; as=image; type=image/webp
@@ -23,8 +18,38 @@
 /index.html
   Cache-Control: public, max-age=3600, must-revalidate
 
-# Favicon - long cache
-/images/favicon.avif
+# Immutable cache for static assets by extension
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpeg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.avif
   Cache-Control: public, max-age=31536000, immutable
 
 # Sitemap & robots - moderate cache
