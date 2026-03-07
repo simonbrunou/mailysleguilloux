@@ -1111,7 +1111,7 @@
 <!-- Footer -->
 <footer>
     <div class="container">
-        <p>© 2025 Maïlys Le Guilloux · Guérisseuse et Kinésiologue à Vannes</p>
+        <p>© 2026 Maïlys Le Guilloux · Guérisseuse et Kinésiologue à Vannes</p>
     </div>
 </footer>
 
@@ -1279,23 +1279,11 @@
 
     // Testimonials Slider
     (function() {
-        const REVIEWS_WORKER_URL = 'https://mailysleguilloux-reviews.YOUR_SUBDOMAIN.workers.dev';
         const track = document.getElementById('testimonials-track');
         const nav = document.getElementById('testimonials-nav');
         const arrowsContainer = document.getElementById('testimonials-arrows');
         let currentSlide = 0;
         let autoplayInterval;
-
-        function createSlideHTML(review) {
-            const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
-            const text = review.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const author = review.author.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return `<div class="testimonial-slide">
-                <blockquote>${text}</blockquote>
-                <cite>— ${author}</cite>
-                <div class="stars" aria-label="${review.rating} étoiles sur 5">${stars}</div>
-            </div>`;
-        }
 
         function initSlider() {
             const slides = track.querySelectorAll('.testimonial-slide');
@@ -1366,40 +1354,7 @@
             }, { passive: true });
         }
 
-        // Initialize with hardcoded reviews first
         initSlider();
-
-        // Then try to fetch fresh reviews from the Worker
-        fetch(REVIEWS_WORKER_URL)
-            .then(r => r.json())
-            .then(data => {
-                if (data.reviews && data.reviews.length > 0) {
-                    track.innerHTML = data.reviews.map(createSlideHTML).join('');
-                    track.style.transform = 'translateX(0)';
-                    initSlider();
-
-                    // Update JSON-LD structured data
-                    const ldScript = document.querySelector('script[type="application/ld+json"]');
-                    if (ldScript) {
-                        const ld = JSON.parse(ldScript.textContent);
-                        ld.aggregateRating = {
-                            "@type": "AggregateRating",
-                            "ratingValue": String(data.rating),
-                            "bestRating": "5",
-                            "worstRating": "1",
-                            "ratingCount": String(data.totalReviews)
-                        };
-                        ld.review = data.reviews.map(r => ({
-                            "@type": "Review",
-                            "author": { "@type": "Person", "name": r.author },
-                            "reviewRating": { "@type": "Rating", "ratingValue": String(r.rating) },
-                            "reviewBody": r.text
-                        }));
-                        ldScript.textContent = JSON.stringify(ld);
-                    }
-                }
-            })
-            .catch(() => {}); // Keep hardcoded reviews on failure
     })();
 </script>
 

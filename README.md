@@ -9,7 +9,6 @@ Hosted on **Cloudflare Pages** with auto-deploy from GitHub.
 ### Infrastructure
 
 - **Site**: Cloudflare Pages (static files from `site/`)
-- **Reviews API**: Cloudflare Worker fetching Google Places reviews
 - **Domain**: `mailysleguilloux.bzh` (DNS managed by Cloudflare)
 
 ### Files
@@ -20,10 +19,6 @@ site/                     # Website files (Pages build output)
   sitemap.xml
   robots.txt
   images/                 # Images (served from CDN)
-worker/                   # Cloudflare Worker for Google reviews
-  src/index.js
-  wrangler.toml
-  package.json
 scripts/
   download-images.sh      # Download images from Wix (run once)
 docs/
