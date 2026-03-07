@@ -10,11 +10,6 @@ Cloudflare Pages (auto-deploy)
     |
     v  mailysleguilloux.bzh
 Cloudflare CDN (300+ edge locations)
-
-Cloudflare Worker (mailysleguilloux-reviews)
-    |
-    v
-Google Places API (cached in KV)
 ```
 
 ---
@@ -59,55 +54,12 @@ DNS records (auto-managed by Pages):
 
 ---
 
-## 3. Deploy the Reviews Worker
-
-The reviews Worker fetches Google reviews dynamically.
-
-### Prerequisites
-
-- Google Cloud project with Places API enabled
-- Google Place ID for the business
-- API key with Places API access
-
-### Setup
-
-```bash
-cd worker
-
-# Install dependencies
-npm install
-
-# Authenticate with Cloudflare
-npx wrangler login
-
-# Update PLACE_ID in wrangler.toml
-
-# Create KV namespace for caching
-npx wrangler kv namespace create REVIEWS_CACHE
-# Add the returned binding to wrangler.toml:
-# [[kv_namespaces]]
-# binding = "REVIEWS_CACHE"
-# id = "<id-from-output>"
-
-# Set the Google API key as a secret
-npx wrangler secret put GOOGLE_API_KEY
-
-# Deploy
-npx wrangler deploy
-```
-
-Then update the `REVIEWS_WORKER_URL` in `site/index.html` with the Worker URL.
-
----
-
-## 4. Verify Deployment
+## 3. Verify Deployment
 
 ```bash
 # Test the site
 curl -I https://mailysleguilloux.bzh
 
-# Test the reviews Worker
-curl https://mailysleguilloux-reviews.<subdomain>.workers.dev
 ```
 
 Expected response:
@@ -136,13 +88,6 @@ python3 -m http.server 8080
 npx wrangler pages deploy site --project-name=mailysleguilloux
 ```
 
-### Update the reviews Worker
-
-```bash
-cd worker
-npx wrangler deploy
-```
-
 ### View deployment logs
 
 In Cloudflare Dashboard > **Workers & Pages** > **mailysleguilloux** > **Deployments**
@@ -156,16 +101,6 @@ In Cloudflare Dashboard > **Workers & Pages** > **mailysleguilloux** > **Deploym
 - Check Cloudflare Pages deployment status in the dashboard
 - Verify the build output directory is set to `site`
 - Check GitHub webhook delivery in repo Settings > Webhooks
-
-### Reviews not loading
-
-```bash
-# Test Worker directly
-curl -v https://mailysleguilloux-reviews.<subdomain>.workers.dev
-
-# Check Worker logs
-npx wrangler tail --name mailysleguilloux-reviews
-```
 
 ### DNS not resolving
 
