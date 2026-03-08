@@ -11,10 +11,12 @@
     <meta name="description" content="Guérisseuse et kinésiologue à Saint-Avé près de Vannes. Séances de kinésiologie, EFT et communication animale pour adultes, enfants et animaux. Fleurs de Bach. ☎ 06 50 91 26 04">
     <meta name="keywords" content="guérisseuse vannes, kinésiologue saint-avé, kinésiologie morbihan, EFT vannes, communication animale bretagne, fleurs de bach vannes, guérisseur 56, bien-être vannes">
     <meta name="author" content="Maïlys Le Guilloux">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://mailysleguilloux.bzh/">
+    <link rel="alternate" hreflang="fr" href="https://mailysleguilloux.bzh/">
+    <link rel="alternate" hreflang="x-default" href="https://mailysleguilloux.bzh/">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -22,6 +24,9 @@
     <meta property="og:title" content="Maïlys Le Guilloux · Guérisseuse, Kinésiologue à Vannes">
     <meta property="og:description" content="Séances de kinésiologie, EFT et communication animale à Saint-Avé et Vannes. Pour adultes, enfants et animaux.">
     <meta property="og:image" content="https://mailysleguilloux.bzh/images/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:locale" content="fr_FR">
     <meta property="og:site_name" content="Maïlys Le Guilloux - Guérisseuse">
 
@@ -603,9 +608,79 @@
         object-fit: cover;
     }
 
+    /* FAQ */
+    .faq {
+        background: var(--color-bg-alt);
+    }
+
+    .faq .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .faq-list {
+        max-width: 750px;
+        margin: 0 auto;
+    }
+
+    .faq-item {
+        border-bottom: 1px solid var(--color-accent-light);
+        padding: 1.5rem 0;
+    }
+
+    .faq-item:first-child {
+        border-top: 1px solid var(--color-accent-light);
+    }
+
+    .faq-question {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: var(--color-dark);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        background: none;
+        border: none;
+        text-align: left;
+        padding: 0;
+        line-height: 1.4;
+    }
+
+    .faq-question::after {
+        content: '+';
+        font-size: 1.5rem;
+        color: var(--color-accent);
+        flex-shrink: 0;
+        margin-left: 1rem;
+        transition: transform 0.3s ease;
+    }
+
+    .faq-item.open .faq-question::after {
+        content: '−';
+    }
+
+    .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .faq-item.open .faq-answer {
+        max-height: 500px;
+        padding-top: 1rem;
+    }
+
+    .faq-answer p {
+        color: var(--color-text);
+        line-height: 1.8;
+    }
+
     /* Contact */
     .contact {
-        background: var(--color-bg-alt);
+        background: var(--color-bg);
     }
 
     .contact-grid {
@@ -766,7 +841,7 @@
     footer p {
         font-size: 0.85rem;
         opacity: 0.7;
-        margin: 0;
+        margin: 0.25rem 0;
     }
 
     footer a {
@@ -849,6 +924,7 @@
             <li><a href="#prestations">Prestations</a></li>
             <li><a href="#avis">Avis</a></li>
             <li><a href="#cabinet">Mon cabinet</a></li>
+            <li><a href="#faq">FAQ</a></li>
             <li><a href="#contact">Contactez-moi</a></li>
             <li class="nav-social">
                 <a href="https://www.instagram.com/mailys_le_guilloux/" target="_blank" rel="noopener" aria-label="Instagram">
@@ -907,9 +983,9 @@
     </header>
 
     <!-- Fleurs de Bach -->
-    <div class="bach-mention">
-        <span>✿</span> Bluffée par leur efficacité, je travaille avec les célèbres <strong>fleurs du Dr Bach</strong> ! <span>✿</span>
-    </div>
+    <section class="bach-mention" aria-label="Fleurs de Bach">
+        <p><span aria-hidden="true">✿</span> Bluffée par leur efficacité, je travaille avec les célèbres <strong>fleurs du Dr Bach</strong> ! <span aria-hidden="true">✿</span></p>
+    </section>
 
     <!-- Prestations -->
     <section class="services" id="prestations" aria-labelledby="prestations-title">
@@ -923,7 +999,7 @@
                     <div class="service-image">
                         <picture>
                             <source srcset="images/prestation-humains.webp" type="image/webp">
-                            <img src="images/prestation-humains.jpg" alt="Séance de kinésiologie" loading="lazy" onerror="this.style.display='none'">
+                            <img src="images/prestation-humains.jpg" alt="Séance de kinésiologie et rééquilibrage par apposition des mains à Saint-Avé" width="600" height="400" loading="lazy" onerror="this.style.display='none'">
                         </picture>
                     </div>
                     <div class="service-content">
@@ -944,7 +1020,7 @@
                     <div class="service-image">
                         <picture>
                             <source srcset="images/prestation-animaux.webp" type="image/webp">
-                            <img src="images/prestation-animaux.jpg" alt="Communication animale" loading="lazy" onerror="this.style.display='none'">
+                            <img src="images/prestation-animaux.jpg" alt="Communication animale et soins pour chiens, chats et chevaux près de Vannes" width="600" height="400" loading="lazy" onerror="this.style.display='none'">
                         </picture>
                     </div>
                     <div class="service-content">
@@ -1030,20 +1106,68 @@
             <div class="cabinet-gallery">
                 <picture>
                     <source srcset="images/cabinet-1.webp" type="image/webp">
-                    <img src="images/cabinet-1.jpg" alt="Cabinet de kinésiologie" loading="lazy" onerror="this.style.display='none'">
+                    <img src="images/cabinet-1.jpg" alt="Cabinet de kinésiologie Maïlys Le Guilloux à Saint-Avé" width="400" height="400" loading="lazy" onerror="this.style.display='none'">
                 </picture>
                 <picture>
                     <source srcset="images/cabinet-2.webp" type="image/webp">
-                    <img src="images/cabinet-2.jpg" alt="Espace de soin" loading="lazy" onerror="this.style.display='none'">
+                    <img src="images/cabinet-2.jpg" alt="Espace de soin chaleureux au 18 rue de Plaisance, Saint-Avé" width="400" height="400" loading="lazy" onerror="this.style.display='none'">
                 </picture>
                 <picture>
                     <source srcset="images/cabinet-3.webp" type="image/webp">
-                    <img src="images/cabinet-3.jpg" alt="Ambiance du cabinet" loading="lazy" onerror="this.style.display='none'">
+                    <img src="images/cabinet-3.jpg" alt="Ambiance apaisante du cabinet de guérisseuse à Saint-Avé" width="400" height="400" loading="lazy" onerror="this.style.display='none'">
                 </picture>
                 <picture>
                     <source srcset="images/cabinet-4.webp" type="image/webp">
-                    <img src="images/cabinet-4.jpg" alt="Détail du cabinet" loading="lazy" onerror="this.style.display='none'">
+                    <img src="images/cabinet-4.jpg" alt="Détail du cabinet de kinésiologie et bien-être Morbihan" width="400" height="400" loading="lazy" onerror="this.style.display='none'">
                 </picture>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq" aria-labelledby="faq-title">
+        <div class="container">
+            <div class="section-header">
+                <h2 id="faq-title">Questions fréquentes</h2>
+            </div>
+
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question" type="button" aria-expanded="false">Qu'est-ce que la kinésiologie ?</button>
+                    <div class="faq-answer">
+                        <p>La kinésiologie est une technique de rééquilibrage psycho-corporelle qui permet de repérer les blocages internes et de les libérer grâce aux tests musculaires et aux appositions des mains. Elle s'adresse aussi bien aux adultes qu'aux enfants et bébés.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button" aria-expanded="false">Combien de temps dure une séance ?</button>
+                    <div class="faq-answer">
+                        <p>Une séance de kinésiologie dure environ une heure. La durée peut varier légèrement en fonction des besoins de chaque personne.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button" aria-expanded="false">Quel est le tarif d'une séance ?</button>
+                    <div class="faq-answer">
+                        <p>Le tarif est de 50 € la séance, que ce soit pour les humains ou les animaux. Un supplément peut s'appliquer en cas de déplacement à domicile.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button" aria-expanded="false">Proposez-vous des séances à domicile ?</button>
+                    <div class="faq-answer">
+                        <p>Oui, je me déplace à domicile autour de Vannes et Saint-Avé. Les séances peuvent aussi avoir lieu à mon cabinet situé au 18 rue de Plaisance à Saint-Avé.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button" aria-expanded="false">Qu'est-ce que la communication animale ?</button>
+                    <div class="faq-answer">
+                        <p>La communication animale permet d'échanger avec vos compagnons à quatre pattes (chiens, chats, chevaux, etc.) et de leur offrir des séances de bien-être adaptées à leurs besoins.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button" aria-expanded="false">Quels moyens de paiement acceptez-vous ?</button>
+                    <div class="faq-answer">
+                        <p>J'accepte les paiements en espèces et par chèque.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -1111,9 +1235,122 @@
 <!-- Footer -->
 <footer>
     <div class="container">
-        <p>© 2026 Maïlys Le Guilloux · Guérisseuse et Kinésiologue à Vannes</p>
+        <p>© 2026 Maïlys Le Guilloux · Guérisseuse et Kinésiologue à <span>Saint-Avé</span> et <span>Vannes</span> · <span>Morbihan (56)</span></p>
+        <p><a href="tel:+33650912604">06 50 91 26 04</a> · <a href="mailto:contact@mailysleguilloux.bzh">contact@mailysleguilloux.bzh</a></p>
     </div>
 </footer>
+
+<!-- Structured Data: WebSite -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Maïlys Le Guilloux - Guérisseuse et Kinésiologue",
+    "url": "https://mailysleguilloux.bzh",
+    "inLanguage": "fr"
+}
+</script>
+
+<!-- Structured Data: Person -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Maïlys Le Guilloux",
+    "jobTitle": "Guérisseuse et Kinésiologue",
+    "url": "https://mailysleguilloux.bzh",
+    "image": "https://mailysleguilloux.bzh/images/mailys.jpg",
+    "telephone": "+33650912604",
+    "email": "contact@mailysleguilloux.bzh",
+    "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "18 rue de Plaisance",
+        "addressLocality": "Saint-Avé",
+        "postalCode": "56890",
+        "addressRegion": "Morbihan",
+        "addressCountry": "FR"
+    },
+    "sameAs": [
+        "https://www.instagram.com/mailys_le_guilloux/",
+        "https://www.annuaire-therapeutes.com/therapeute/179878-mailys-le-guilloux-vannes"
+    ],
+    "knowsAbout": ["Kinésiologie", "EFT", "Communication animale", "Fleurs de Bach", "Guérison"]
+}
+</script>
+
+<!-- Structured Data: BreadcrumbList -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Accueil",
+            "item": "https://mailysleguilloux.bzh/"
+        }
+    ]
+}
+</script>
+
+<!-- Structured Data: FAQ -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "Qu'est-ce que la kinésiologie ?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "La kinésiologie est une technique de rééquilibrage psycho-corporelle qui permet de repérer les blocages internes et de les libérer grâce aux tests musculaires et aux appositions des mains. Elle s'adresse aussi bien aux adultes qu'aux enfants et bébés."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Combien de temps dure une séance ?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Une séance de kinésiologie dure environ une heure. La durée peut varier légèrement en fonction des besoins de chaque personne."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Quel est le tarif d'une séance ?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Le tarif est de 50 € la séance, que ce soit pour les humains ou les animaux. Un supplément peut s'appliquer en cas de déplacement à domicile."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Proposez-vous des séances à domicile ?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Oui, je me déplace à domicile autour de Vannes et Saint-Avé. Les séances peuvent aussi avoir lieu à mon cabinet situé au 18 rue de Plaisance à Saint-Avé."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Qu'est-ce que la communication animale ?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "La communication animale permet d'échanger avec vos compagnons à quatre pattes (chiens, chats, chevaux, etc.) et de leur offrir des séances de bien-être adaptées à leurs besoins."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Quels moyens de paiement acceptez-vous ?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "J'accepte les paiements en espèces et par chèque."
+            }
+        }
+    ]
+}
+</script>
 
 <!-- Structured Data for Local Business -->
 <script type="application/ld+json">
@@ -1421,6 +1658,18 @@
             feedback.className = 'form-feedback';
         }
     })();
+</script>
+
+<script>
+    // FAQ accordion
+    document.querySelectorAll('.faq-question').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var item = btn.closest('.faq-item');
+            var isOpen = item.classList.contains('open');
+            item.classList.toggle('open');
+            btn.setAttribute('aria-expanded', !isOpen);
+        });
+    });
 </script>
 
 </body>
