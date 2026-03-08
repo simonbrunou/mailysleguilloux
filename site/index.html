@@ -435,6 +435,12 @@
         overflow: hidden;
     }
 
+    .service-image picture {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
     .service-image img {
         width: 100%;
         height: 100%;
@@ -601,10 +607,16 @@
         gap: 1rem;
     }
 
-    .cabinet-gallery picture,
-    .cabinet-gallery img {
+    .cabinet-gallery picture {
+        display: block;
         width: 100%;
         aspect-ratio: 1;
+        overflow: hidden;
+    }
+
+    .cabinet-gallery img {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
     }
 
@@ -906,6 +918,12 @@
 
         .logo-text {
             display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .cabinet-gallery {
+            grid-template-columns: 1fr;
         }
     }
 </style>
