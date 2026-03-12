@@ -27,6 +27,7 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:alt" content="Maïlys Le Guilloux, guérisseuse et kinésiologue à Saint-Avé près de Vannes">
     <meta property="og:locale" content="fr_FR">
     <meta property="og:site_name" content="Maïlys Le Guilloux - Guérisseuse">
 
@@ -36,6 +37,7 @@
     <meta name="twitter:title" content="Maïlys Le Guilloux · Guérisseuse, Kinésiologue à Vannes">
     <meta name="twitter:description" content="Séances de kinésiologie, EFT et communication animale à Saint-Avé et Vannes.">
     <meta name="twitter:image" content="https://mailysleguilloux.bzh/images/og-image.jpg">
+    <meta name="twitter:image:alt" content="Maïlys Le Guilloux, guérisseuse et kinésiologue à Saint-Avé près de Vannes">
 
     <!-- Geo tags for local SEO -->
     <meta name="geo.region" content="FR-56">
@@ -45,6 +47,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/avif" href="/images/favicon.avif">
+    <link rel="apple-touch-icon" href="/images/favicon.avif">
     <meta name="theme-color" content="#D4A5A5">
 
     <!-- Preload critical resources -->
@@ -69,6 +72,26 @@
         --section-padding: clamp(4rem, 10vw, 7rem);
     }
 
+    /* Skip to content */
+    .skip-link {
+        position: absolute;
+        top: -100%;
+        left: 1rem;
+        z-index: 200;
+        padding: 0.75rem 1.5rem;
+        background: var(--color-dark);
+        color: white;
+        font-family: var(--font-body);
+        font-size: 0.9rem;
+        text-decoration: none;
+        border-radius: 0 0 4px 4px;
+    }
+
+    .skip-link:focus {
+        top: 0;
+        color: white;
+    }
+
     *, *::before, *::after {
         box-sizing: border-box;
         margin: 0;
@@ -77,6 +100,18 @@
 
     html {
         scroll-behavior: smooth;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
     }
 
     body {
@@ -124,6 +159,11 @@
 
     a:hover {
         color: var(--color-dark);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-accent-dark);
+        outline-offset: 2px;
     }
 
     .container {
@@ -792,8 +832,9 @@
 
     .form-group input:focus,
     .form-group textarea:focus {
-        outline: none;
         border-color: var(--color-accent);
+        outline: 2px solid var(--color-accent-dark);
+        outline-offset: -1px;
     }
 
     .form-group textarea {
@@ -931,6 +972,8 @@
 </head>
 <body>
 
+<a href="#main-content" class="skip-link">Aller au contenu principal</a>
+
 <!-- Navigation -->
 <nav aria-label="Navigation principale">
     <div class="container">
@@ -945,7 +988,7 @@
             <li><a href="#faq">FAQ</a></li>
             <li><a href="#contact">Contactez-moi</a></li>
             <li class="nav-social">
-                <a href="https://www.instagram.com/mailys_le_guilloux/" target="_blank" rel="noopener" aria-label="Instagram">
+                <a href="https://www.instagram.com/mailys_le_guilloux/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                 </a>
             </li>
@@ -958,7 +1001,7 @@
     </div>
 </nav>
 
-<main>
+<main id="main-content">
     <!-- Hero -->
     <header class="hero">
         <div class="container">
@@ -1063,33 +1106,33 @@
                 <h2 id="avis-title">Avis clients</h2>
             </div>
             
-            <div class="testimonials-slider">
-                <div class="testimonials-track" id="testimonials-track">
-                    
+            <div class="testimonials-slider" role="region" aria-roledescription="carrousel" aria-label="Témoignages clients">
+                <div class="testimonials-track" id="testimonials-track" aria-live="off">
+
                     <!-- Témoignage 1 - Eldora -->
-                    <div class="testimonial-slide">
+                    <div class="testimonial-slide" role="group" aria-roledescription="diapositive" aria-label="Témoignage 1 sur 3">
                         <blockquote>
                             Je recommande les yeux fermés Maïlys !
                         </blockquote>
                         <cite>— Eldora</cite>
                         <div class="stars" aria-label="5 étoiles sur 5">★★★★★</div>
                     </div>
-                    
+
                     <!-- Témoignage 2 - Maïté -->
-                    <div class="testimonial-slide">
+                    <div class="testimonial-slide" role="group" aria-roledescription="diapositive" aria-label="Témoignage 2 sur 3">
                         <blockquote>
-                            Après ma troisième séance avec Maïlys, je repars une fois de plus apaisée 
-                            et prête à continuer mon cheminement. Son écoute et sa méthode ont toujours 
+                            Après ma troisième séance avec Maïlys, je repars une fois de plus apaisée
+                            et prête à continuer mon cheminement. Son écoute et sa méthode ont toujours
                             su adresser ce dont j'avais besoin, tout en douceur. Je recommande sans hésitation !
                         </blockquote>
                         <cite>— Maïté</cite>
                         <div class="stars" aria-label="5 étoiles sur 5">★★★★★</div>
                     </div>
-                    
+
                     <!-- Témoignage 3 - Florence -->
-                    <div class="testimonial-slide">
+                    <div class="testimonial-slide" role="group" aria-roledescription="diapositive" aria-label="Témoignage 3 sur 3">
                         <blockquote>
-                            Nous sommes ravis d'avoir fait la connaissance de Maïlys. Une très belle 
+                            Nous sommes ravis d'avoir fait la connaissance de Maïlys. Une très belle
                             personne et très professionnelle qui mérite d'être connue. 🙏🌸
                         </blockquote>
                         <cite>— Florence</cite>
@@ -1151,38 +1194,38 @@
 
             <div class="faq-list">
                 <div class="faq-item">
-                    <button class="faq-question" type="button" aria-expanded="false">Qu'est-ce que la kinésiologie ?</button>
-                    <div class="faq-answer">
+                    <button class="faq-question" id="faq-q-1" type="button" aria-expanded="false" aria-controls="faq-answer-1">Qu'est-ce que la kinésiologie ?</button>
+                    <div class="faq-answer" id="faq-answer-1" role="region" aria-labelledby="faq-q-1">
                         <p>La kinésiologie est une technique de rééquilibrage psycho-corporelle qui permet de repérer les blocages internes et de les libérer grâce aux tests musculaires et aux appositions des mains. Elle s'adresse aussi bien aux adultes qu'aux enfants et bébés.</p>
                     </div>
                 </div>
                 <div class="faq-item">
-                    <button class="faq-question" type="button" aria-expanded="false">Combien de temps dure une séance ?</button>
-                    <div class="faq-answer">
+                    <button class="faq-question" id="faq-q-2" type="button" aria-expanded="false" aria-controls="faq-answer-2">Combien de temps dure une séance ?</button>
+                    <div class="faq-answer" id="faq-answer-2" role="region" aria-labelledby="faq-q-2">
                         <p>Une séance de kinésiologie dure environ une heure. La durée peut varier légèrement en fonction des besoins de chaque personne.</p>
                     </div>
                 </div>
                 <div class="faq-item">
-                    <button class="faq-question" type="button" aria-expanded="false">Quel est le tarif d'une séance ?</button>
-                    <div class="faq-answer">
+                    <button class="faq-question" id="faq-q-3" type="button" aria-expanded="false" aria-controls="faq-answer-3">Quel est le tarif d'une séance ?</button>
+                    <div class="faq-answer" id="faq-answer-3" role="region" aria-labelledby="faq-q-3">
                         <p>Le tarif est de 50 € la séance, que ce soit pour les humains ou les animaux. Un supplément peut s'appliquer en cas de déplacement à domicile.</p>
                     </div>
                 </div>
                 <div class="faq-item">
-                    <button class="faq-question" type="button" aria-expanded="false">Proposez-vous des séances à domicile ?</button>
-                    <div class="faq-answer">
+                    <button class="faq-question" id="faq-q-4" type="button" aria-expanded="false" aria-controls="faq-answer-4">Proposez-vous des séances à domicile ?</button>
+                    <div class="faq-answer" id="faq-answer-4" role="region" aria-labelledby="faq-q-4">
                         <p>Oui, je me déplace à domicile autour de Vannes et Saint-Avé. Les séances peuvent aussi avoir lieu à mon cabinet situé au 18 rue de Plaisance à Saint-Avé.</p>
                     </div>
                 </div>
                 <div class="faq-item">
-                    <button class="faq-question" type="button" aria-expanded="false">Qu'est-ce que la communication animale ?</button>
-                    <div class="faq-answer">
+                    <button class="faq-question" id="faq-q-5" type="button" aria-expanded="false" aria-controls="faq-answer-5">Qu'est-ce que la communication animale ?</button>
+                    <div class="faq-answer" id="faq-answer-5" role="region" aria-labelledby="faq-q-5">
                         <p>La communication animale permet d'échanger avec vos compagnons à quatre pattes (chiens, chats, chevaux, etc.) et de leur offrir des séances de bien-être adaptées à leurs besoins.</p>
                     </div>
                 </div>
                 <div class="faq-item">
-                    <button class="faq-question" type="button" aria-expanded="false">Quels moyens de paiement acceptez-vous ?</button>
-                    <div class="faq-answer">
+                    <button class="faq-question" id="faq-q-6" type="button" aria-expanded="false" aria-controls="faq-answer-6">Quels moyens de paiement acceptez-vous ?</button>
+                    <div class="faq-answer" id="faq-answer-6" role="region" aria-labelledby="faq-q-6">
                         <p>J'accepte les paiements en espèces et par chèque.</p>
                     </div>
                 </div>
@@ -1216,7 +1259,7 @@
                     </div>
                     
                     <div class="contact-social">
-                        <a href="https://www.instagram.com/mailys_le_guilloux/" target="_blank" rel="noopener">
+                        <a href="https://www.instagram.com/mailys_le_guilloux/" target="_blank" rel="noopener noreferrer">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                             Suivez-moi sur Instagram
                         </a>
@@ -1224,7 +1267,7 @@
                 </div>
                 
                 <div class="contact-form">
-                    <form id="contact-form" novalidate>
+                    <form id="contact-form" aria-label="Formulaire de contact" novalidate>
                         <div class="form-group">
                             <label for="name">Nom</label>
                             <input type="text" id="name" name="name" required autocomplete="name">
@@ -1251,9 +1294,10 @@
 </main>
 
 <!-- Footer -->
-<footer>
+<footer role="contentinfo">
     <div class="container">
         <p>© 2026 Maïlys Le Guilloux · Guérisseuse et Kinésiologue à <span>Saint-Avé</span> et <span>Vannes</span> · <span>Morbihan (56)</span></p>
+        <p>Kinésiologie · EFT · Communication animale · Fleurs de Bach</p>
         <p><a href="tel:+33650912604">06 50 91 26 04</a> · <a href="mailto:contact@mailysleguilloux.bzh">contact@mailysleguilloux.bzh</a></p>
     </div>
 </footer>
@@ -1569,6 +1613,7 @@
                 track.style.transform = `translateX(-${currentSlide * 100}%)`;
                 nav.querySelectorAll('button').forEach((dot, i) => {
                     dot.classList.toggle('active', i === currentSlide);
+                    dot.setAttribute('aria-current', i === currentSlide ? 'true' : 'false');
                 });
             }
 
