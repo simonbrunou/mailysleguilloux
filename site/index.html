@@ -9,9 +9,15 @@
     <title>Maïlys Le Guilloux · Guérisseuse, Kinésiologue à Vannes et Saint-Avé</title>
     <meta name="title" content="Maïlys Le Guilloux · Guérisseuse, Kinésiologue à Vannes et Saint-Avé">
     <meta name="description" content="Guérisseuse et kinésiologue à Saint-Avé près de Vannes. Séances de kinésiologie, EFT et communication animale pour adultes, enfants et animaux. Fleurs de Bach. ☎ 06 50 91 26 04">
-    <meta name="keywords" content="guérisseuse vannes, kinésiologue saint-avé, kinésiologie morbihan, EFT vannes, communication animale bretagne, fleurs de bach vannes, guérisseur 56, bien-être vannes">
+    <meta name="keywords" content="guérisseuse vannes, kinésiologue saint-avé, kinésiologie morbihan, EFT vannes, communication animale bretagne, fleurs de bach vannes, guérisseur 56, bien-être vannes, kinésiologue vannes, guérisseuse morbihan, guérisseuse saint-avé, séance kinésiologie vannes, EFT morbihan, technique libération émotionnelle vannes, communication animale morbihan, soins énergétiques vannes, rééquilibrage corporel morbihan, kinésiologie animaux bretagne, guérisseur bretagne, santé par le toucher vannes, kinésiologie enfant vannes, thérapeute holistique morbihan">
     <meta name="author" content="Maïlys Le Guilloux">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta http-equiv="content-language" content="fr">
+    <meta name="format-detection" content="telephone=yes">
+    <meta name="subject" content="Kinésiologie et soins holistiques à Vannes et Saint-Avé">
+    <meta name="coverage" content="France">
+    <meta name="distribution" content="local">
+    <meta name="rating" content="general">
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://mailysleguilloux.bzh/">
@@ -52,6 +58,8 @@
 
     <!-- Preload critical resources -->
     <link rel="preload" href="images/mailys.webp" as="image" type="image/webp">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Raleway:wght@300;400;500&display=swap" as="style">
@@ -1307,9 +1315,14 @@
 {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": "https://mailysleguilloux.bzh/#website",
     "name": "Maïlys Le Guilloux - Guérisseuse et Kinésiologue",
     "url": "https://mailysleguilloux.bzh",
-    "inLanguage": "fr"
+    "inLanguage": "fr",
+    "description": "Site officiel de Maïlys Le Guilloux, guérisseuse et kinésiologue à Saint-Avé près de Vannes. Kinésiologie, EFT, communication animale et Fleurs de Bach.",
+    "publisher": {
+        "@id": "https://mailysleguilloux.bzh/#person"
+    }
 }
 </script>
 
@@ -1318,10 +1331,18 @@
 {
     "@context": "https://schema.org",
     "@type": "Person",
+    "@id": "https://mailysleguilloux.bzh/#person",
     "name": "Maïlys Le Guilloux",
     "jobTitle": "Guérisseuse et Kinésiologue",
+    "description": "Guérisseuse et kinésiologue formée par Christophe Le Guilloux, pratiquant la Santé par le Toucher depuis 2021 à Saint-Avé près de Vannes.",
     "url": "https://mailysleguilloux.bzh",
-    "image": "https://mailysleguilloux.bzh/images/mailys.jpg",
+    "image": {
+        "@type": "ImageObject",
+        "url": "https://mailysleguilloux.bzh/images/mailys.jpg",
+        "width": 380,
+        "height": 543,
+        "caption": "Maïlys Le Guilloux, guérisseuse et kinésiologue à Vannes"
+    },
     "telephone": "+33650912604",
     "email": "contact@mailysleguilloux.bzh",
     "address": {
@@ -1336,7 +1357,10 @@
         "https://www.instagram.com/mailys_le_guilloux/",
         "https://www.annuaire-therapeutes.com/therapeute/179878-mailys-le-guilloux-vannes"
     ],
-    "knowsAbout": ["Kinésiologie", "EFT", "Communication animale", "Fleurs de Bach", "Guérison"]
+    "knowsAbout": ["Kinésiologie", "EFT", "Technique de Libération Émotionnelle", "Communication animale", "Fleurs de Bach", "Fleurs du Dr Bach", "Guérison", "Santé par le Toucher", "Rééquilibrage psycho-corporel", "Tests musculaires", "Bien-être animal"],
+    "worksFor": {
+        "@id": "https://mailysleguilloux.bzh/#business"
+    }
 }
 </script>
 
@@ -1351,6 +1375,30 @@
             "position": 1,
             "name": "Accueil",
             "item": "https://mailysleguilloux.bzh/"
+        },
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Prestations",
+            "item": "https://mailysleguilloux.bzh/#prestations"
+        },
+        {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Avis clients",
+            "item": "https://mailysleguilloux.bzh/#avis"
+        },
+        {
+            "@type": "ListItem",
+            "position": 4,
+            "name": "FAQ",
+            "item": "https://mailysleguilloux.bzh/#faq"
+        },
+        {
+            "@type": "ListItem",
+            "position": 5,
+            "name": "Contact",
+            "item": "https://mailysleguilloux.bzh/#contact"
         }
     ]
 }
@@ -1419,12 +1467,20 @@
 {
     "@context": "https://schema.org",
     "@type": "HealthAndBeautyBusiness",
+    "@id": "https://mailysleguilloux.bzh/#business",
     "name": "Maïlys Le Guilloux - Guérisseuse et Kinésiologue",
-    "description": "Guérisseuse et kinésiologue proposant des séances de kinésiologie, EFT et communication animale à Saint-Avé près de Vannes.",
-    "image": "https://mailysleguilloux.bzh/images/mailys.jpg",
+    "description": "Guérisseuse et kinésiologue proposant des séances de kinésiologie, EFT, communication animale et Fleurs de Bach à Saint-Avé près de Vannes dans le Morbihan.",
+    "image": [
+        "https://mailysleguilloux.bzh/images/mailys.jpg",
+        "https://mailysleguilloux.bzh/images/og-image.jpg",
+        "https://mailysleguilloux.bzh/images/cabinet-1.jpg"
+    ],
     "url": "https://mailysleguilloux.bzh",
     "telephone": "+33650912604",
     "email": "contact@mailysleguilloux.bzh",
+    "founder": {
+        "@id": "https://mailysleguilloux.bzh/#person"
+    },
     "address": {
         "@type": "PostalAddress",
         "streetAddress": "18 rue de Plaisance",
@@ -1438,6 +1494,7 @@
         "latitude": 47.6869,
         "longitude": -2.7356
     },
+    "hasMap": "https://www.google.com/maps/search/?api=1&query=18+rue+de+Plaisance+56890+Saint-Avé+France",
     "areaServed": [
         {
             "@type": "City",
@@ -1448,8 +1505,44 @@
             "name": "Saint-Avé"
         },
         {
+            "@type": "City",
+            "name": "Arradon"
+        },
+        {
+            "@type": "City",
+            "name": "Séné"
+        },
+        {
+            "@type": "City",
+            "name": "Theix-Noyalo"
+        },
+        {
+            "@type": "City",
+            "name": "Ploeren"
+        },
+        {
+            "@type": "City",
+            "name": "Plescop"
+        },
+        {
+            "@type": "City",
+            "name": "Auray"
+        },
+        {
+            "@type": "City",
+            "name": "Questembert"
+        },
+        {
+            "@type": "City",
+            "name": "Elven"
+        },
+        {
             "@type": "AdministrativeArea",
             "name": "Morbihan"
+        },
+        {
+            "@type": "AdministrativeArea",
+            "name": "Bretagne"
         }
     ],
     "priceRange": "50€",
@@ -1482,7 +1575,23 @@
                 "itemOffered": {
                     "@type": "Service",
                     "name": "Séance de kinésiologie",
-                    "description": "Rééquilibrage du corps grâce aux appositions des mains et aux tests musculaires"
+                    "description": "Rééquilibrage psycho-corporel grâce aux appositions des mains et aux tests musculaires. Pour adultes, enfants et bébés. Durée : environ 1 heure.",
+                    "provider": { "@id": "https://mailysleguilloux.bzh/#person" },
+                    "areaServed": "Vannes, Saint-Avé, Morbihan",
+                    "serviceType": "Kinésiologie"
+                },
+                "price": "50",
+                "priceCurrency": "EUR"
+            },
+            {
+                "@type": "Offer",
+                "itemOffered": {
+                    "@type": "Service",
+                    "name": "Séance EFT - Technique de Libération Émotionnelle",
+                    "description": "Technique de libération émotionnelle pour réguler ses émotions et mieux gérer son stress.",
+                    "provider": { "@id": "https://mailysleguilloux.bzh/#person" },
+                    "areaServed": "Vannes, Saint-Avé, Morbihan",
+                    "serviceType": "EFT"
                 },
                 "price": "50",
                 "priceCurrency": "EUR"
@@ -1492,10 +1601,24 @@
                 "itemOffered": {
                     "@type": "Service",
                     "name": "Communication animale",
-                    "description": "Séances de bien-être pour les animaux de compagnie"
+                    "description": "Séances de bien-être et communication pour les animaux de compagnie : chiens, chats, chevaux et autres.",
+                    "provider": { "@id": "https://mailysleguilloux.bzh/#person" },
+                    "areaServed": "Vannes, Saint-Avé, Morbihan, Bretagne",
+                    "serviceType": "Communication animale"
                 },
                 "price": "50",
                 "priceCurrency": "EUR"
+            },
+            {
+                "@type": "Offer",
+                "itemOffered": {
+                    "@type": "Service",
+                    "name": "Consultation Fleurs de Bach",
+                    "description": "Accompagnement avec les célèbres Fleurs du Dr Bach pour un rééquilibrage émotionnel naturel.",
+                    "provider": { "@id": "https://mailysleguilloux.bzh/#person" },
+                    "areaServed": "Vannes, Saint-Avé, Morbihan",
+                    "serviceType": "Fleurs de Bach"
+                }
             }
         ]
     },
