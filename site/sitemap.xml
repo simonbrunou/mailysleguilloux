@@ -1,9 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
     <url>
         <loc>https://mailysleguilloux.bzh/</loc>
-        <lastmod>2026-03-05</lastmod>
+        <lastmod>2026-03-16</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
+        <image:image>
+            <image:loc>https://mailysleguilloux.bzh/images/mailys.jpg</image:loc>
+            <image:title>Maïlys Le Guilloux, guérisseuse et kinésiologue à Vannes</image:title>
+            <image:caption>Maïlys Le Guilloux, guérisseuse et kinésiologue à Vannes et Saint-Avé, Morbihan</image:caption>
+            <image:geo_location>Saint-Avé, Morbihan, France</image:geo_location>
+        </image:image>
+        <image:image>
+            <image:loc>https://mailysleguilloux.bzh/images/prestation-humains.jpg</image:loc>
+            <image:title>Séance de kinésiologie à Saint-Avé près de Vannes</image:title>
+            <image:caption>Séance de kinésiologie et rééquilibrage par apposition des mains à Saint-Avé</image:caption>
+            <image:geo_location>Saint-Avé, Morbihan, France</image:geo_location>
+        </image:image>
+        <image:image>
+            <image:loc>https://mailysleguilloux.bzh/images/prestation-animaux.jpg</image:loc>
+            <image:title>Communication animale près de Vannes</image:title>
+            <image:caption>Communication animale et soins pour chiens, chats et chevaux près de Vannes</image:caption>
+            <image:geo_location>Saint-Avé, Morbihan, France</image:geo_location>
+        </image:image>
+        <image:image>
+            <image:loc>https://mailysleguilloux.bzh/images/cabinet-1.jpg</image:loc>
+            <image:title>Cabinet de kinésiologie à Saint-Avé</image:title>
+            <image:caption>Cabinet de kinésiologie Maïlys Le Guilloux au 18 rue de Plaisance, Saint-Avé</image:caption>
+            <image:geo_location>Saint-Avé, Morbihan, France</image:geo_location>
+        </image:image>
+        <image:image>
+            <image:loc>https://mailysleguilloux.bzh/images/og-image.jpg</image:loc>
+            <image:title>Maïlys Le Guilloux - Guérisseuse et Kinésiologue Vannes</image:title>
+            <image:caption>Maïlys Le Guilloux, guérisseuse et kinésiologue à Saint-Avé près de Vannes, Morbihan</image:caption>
+            <image:geo_location>Saint-Avé, Morbihan, France</image:geo_location>
+        </image:image>
     </url>
 </urlset>
