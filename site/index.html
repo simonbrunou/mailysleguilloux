@@ -977,6 +977,7 @@
     }
 </style>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -1292,6 +1293,7 @@
                             <label for="message">Message</label>
                             <textarea id="message" name="message" required></textarea>
                         </div>
+                        <div class="cf-turnstile" data-sitekey="0x4AAAAAACxQOm5Lcuo6wUTP" data-language="fr"></div>
                         <button type="submit" class="btn-submit">Envoyer</button>
                         <div id="form-feedback" class="form-feedback" role="alert" aria-live="polite"></div>
                     </form>
@@ -1806,6 +1808,13 @@
                 return;
             }
 
+            var turnstileResponse = form.querySelector('[name="cf-turnstile-response"]');
+            var token = turnstileResponse ? turnstileResponse.value : '';
+            if (!token) {
+                showFeedback('error', 'Veuillez compléter la vérification anti-spam.');
+                return;
+            }
+
             btn.disabled = true;
             btn.textContent = 'Envoi en cours…';
             hideFeedback();
@@ -1813,7 +1822,7 @@
             fetch(WORKER_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, email: email, subject: subject, message: message })
+                body: JSON.stringify({ name: name, email: email, subject: subject, message: message, 'cf-turnstile-response': token })
             })
             .then(function (res) { return res.json(); })
             .then(function (data) {
@@ -1830,6 +1839,9 @@
             .finally(function () {
                 btn.disabled = false;
                 btn.textContent = 'Envoyer';
+                if (typeof turnstile !== 'undefined') {
+                    turnstile.reset();
+                }
             });
         });
 

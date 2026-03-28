@@ -82,7 +82,32 @@ async function handleContact(request, env) {
     return jsonResponse({ ok: false, message: "Corps de requête invalide." }, 400);
   }
 
-  const { name, email, subject, message } = body;
+  const { name, email, subject, message, "cf-turnstile-response": turnstileToken } = body;
+
+  // Verify Cloudflare Turnstile token
+  if (!turnstileToken) {
+    return jsonResponse({ ok: false, message: "Vérification anti-spam manquante." }, 400);
+  }
+
+  if (!env.TURNSTILE_SECRET_KEY) {
+    console.error("TURNSTILE_SECRET_KEY secret not configured");
+    return jsonResponse({ ok: false, message: "Service de vérification non configuré." }, 503);
+  }
+
+  const turnstileRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      secret: env.TURNSTILE_SECRET_KEY,
+      response: turnstileToken,
+      remoteip: ip,
+    }),
+  });
+
+  const turnstileData = await turnstileRes.json();
+  if (!turnstileData.success) {
+    return jsonResponse({ ok: false, message: "Échec de la vérification anti-spam. Veuillez réessayer." }, 403);
+  }
 
   if (!name || !email || !message) {
     return jsonResponse({ ok: false, message: "Veuillez remplir les champs obligatoires (nom, e-mail, message)." }, 400);

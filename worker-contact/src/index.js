@@ -37,7 +37,33 @@ export default {
       return cors(jsonError('Corps de requête invalide', 400), allowedOrigin);
     }
 
-    const { name, email, subject, message } = body;
+    const { name, email, subject, message, "cf-turnstile-response": turnstileToken } = body;
+
+    // Verify Cloudflare Turnstile token
+    if (!turnstileToken) {
+      return cors(jsonError('Vérification anti-spam manquante.', 400), allowedOrigin);
+    }
+
+    if (!env.TURNSTILE_SECRET_KEY) {
+      console.error('TURNSTILE_SECRET_KEY secret not configured');
+      return cors(jsonError('Service de vérification non configuré.', 503), allowedOrigin);
+    }
+
+    const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+    const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: env.TURNSTILE_SECRET_KEY,
+        response: turnstileToken,
+        remoteip: ip,
+      }),
+    });
+
+    const turnstileData = await turnstileRes.json();
+    if (!turnstileData.success) {
+      return cors(jsonError('Échec de la vérification anti-spam. Veuillez réessayer.', 403), allowedOrigin);
+    }
 
     if (!name || !email || !message) {
       return cors(jsonError('Champs requis manquants : nom, e-mail, message', 400), allowedOrigin);
