@@ -9,17 +9,8 @@
   "assets": {
     "directory": "site",
     "binding": "ASSETS",
-    "run_worker_first": ["/images/*", "/contact"],
+    "run_worker_first": ["/contact"],
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "mailysleguilloux-images"
-    }
-  ]
+  }
 }

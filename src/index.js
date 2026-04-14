@@ -5,40 +5,6 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith("/images/")) {
-      const key = url.pathname.slice("/images/".length);
-      const object = await env.R2.get(key);
-
-      if (!object) {
-        return new Response("Not Found", { status: 404 });
-      }
-
-      const headers = new Headers();
-      object.writeHttpMetadata(headers);
-      headers.set("etag", object.httpEtag);
-      headers.set("cache-control", "public, max-age=31536000, immutable");
-
-      // Content-Type fallback for R2 objects uploaded without metadata
-      if (!headers.get("content-type")) {
-        const ext = key.split(".").pop()?.toLowerCase();
-        const mimeTypes = {
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          png: "image/png",
-          webp: "image/webp",
-          svg: "image/svg+xml",
-          gif: "image/gif",
-          avif: "image/avif",
-        };
-        headers.set("content-type", mimeTypes[ext] || "application/octet-stream");
-      }
-
-      // Security header (not covered by _headers for R2 responses)
-      headers.set("x-content-type-options", "nosniff");
-
-      return new Response(object.body, { headers });
-    }
-
     // CORS preflight for /contact
     if (url.pathname === "/contact" && request.method === "OPTIONS") {
       return new Response(null, {
@@ -56,7 +22,7 @@ export default {
       return handleContact(request, env);
     }
 
-    // With run_worker_first, only /images/* and /contact reach the Worker.
+    // With run_worker_first, only /contact reaches the Worker.
     // Any other path here is unexpected — return 404.
     return new Response("Not Found", { status: 404 });
   },
@@ -70,7 +36,7 @@ async function handleContact(request, env) {
   const cached = await cache.match(cacheKey);
   if (cached) {
     return jsonResponse(
-      { ok: false, message: "Veuillez patienter avant de renvoyer un message." },
+      { ok: false, message: "Veuillez patienter 60 secondes avant de renvoyer un message." },
       429
     );
   }
