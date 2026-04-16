@@ -5,6 +5,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Serve images from R2
     if (url.pathname.startsWith("/images/")) {
       const key = url.pathname.slice("/images/".length);
       const object = await env.R2.get(key);
@@ -70,7 +71,7 @@ async function handleContact(request, env) {
   const cached = await cache.match(cacheKey);
   if (cached) {
     return jsonResponse(
-      { ok: false, message: "Veuillez patienter avant de renvoyer un message." },
+      { ok: false, message: "Veuillez patienter 60 secondes avant de renvoyer un message." },
       429
     );
   }
