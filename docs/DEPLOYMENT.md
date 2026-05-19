@@ -1,112 +1,124 @@
-# Deployment Guide - mailysleguilloux.bzh
+# Deployment Guide — mailysleguilloux.bzh
 
 ## Architecture
 
 ```
 GitHub (push to main)
-    |
-    v
-Cloudflare Pages (auto-deploy)
-    |
-    v  mailysleguilloux.bzh
-Cloudflare CDN (300+ edge locations)
+    │
+    ▼
+Cloudflare Workers Builds (auto-deploy)
+    │
+    ▼  mailysleguilloux.bzh
+Cloudflare edge (300+ PoPs)
+    ├── Static assets from site/  (served directly)
+    └── Worker src/index.js
+        ├── POST /contact   → Resend API (with Turnstile)
+        └── GET  /images/*  → R2 bucket
 ```
 
+The Worker is configured with `run_worker_first: ["/images/*", "/contact"]` so every other path is served straight from static assets — the Worker never runs for the homepage, fonts, CSS, etc.
+
 ---
 
-## 1. Deploy to Cloudflare Pages
+## 1. Initial setup (one-time)
 
-### Option A: Git integration (recommended)
+### Worker + GitHub integration
 
-1. Push your repo to GitHub
-2. Go to **Cloudflare Dashboard** > **Workers & Pages** > **Create** > **Pages**
-3. Connect your GitHub repository
-4. Configure build settings:
-   - **Project name**: `mailysleguilloux`
-   - **Production branch**: `main`
-   - **Build command**: (leave empty)
-   - **Build output directory**: `site`
-5. Click **Save and Deploy**
+1. **Cloudflare Dashboard** → **Workers & Pages** → **Create** → **Import a repository**.
+2. Pick the GitHub repo.
+3. **Build settings**:
+   - Build command: *(empty)*
+   - Deploy command: `npx wrangler deploy`
+   - Root directory: *(repo root)*
+4. **Save and Deploy**. Subsequent pushes to `main` auto-deploy; pushes to any other branch produce a **preview URL**.
 
-Every push to `main` auto-deploys.
-
-### Option B: Direct upload via CLI
+### R2 bucket for images
 
 ```bash
-npx wrangler pages deploy site --project-name=mailysleguilloux
+npx wrangler r2 bucket create mailysleguilloux-images
 ```
 
----
+The binding (`R2`) is already declared in `wrangler.jsonc`.
 
-## 2. Custom Domain
-
-1. In Cloudflare Pages project > **Custom domains**
-2. Add `mailysleguilloux.bzh`
-3. Cloudflare auto-configures DNS (CNAME to Pages)
-4. Add `www.mailysleguilloux.bzh` as well (redirects to apex)
-
-DNS records (auto-managed by Pages):
-
-| Type  | Name | Content                          | Proxy     |
-|-------|------|----------------------------------|-----------|
-| CNAME | @    | `mailysleguilloux.pages.dev`     | Proxied   |
-| CNAME | www  | `mailysleguilloux.pages.dev`     | Proxied   |
-
----
-
-## 3. Verify Deployment
+Upload the site images:
 
 ```bash
-# Test the site
+./scripts/upload-images.sh
+```
+
+### Secrets
+
+```bash
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put TURNSTILE_SECRET_KEY
+```
+
+The Turnstile **site key** is public and lives directly in `site/index.html`. Create the widget in Cloudflare Dashboard → **Turnstile** → **Add site**, then paste the site key into the `data-sitekey` attribute on the form.
+
+> The repo ships with the always-passes test keys so the contact form works in preview deployments without configuration. Replace both before production.
+
+---
+
+## 2. Custom domain
+
+In the Worker project → **Settings** → **Domains & Routes** → **Add Custom Domain**: `mailysleguilloux.bzh` (and `www.mailysleguilloux.bzh`). Cloudflare manages the DNS records automatically.
+
+---
+
+## 3. Verify
+
+```bash
 curl -I https://mailysleguilloux.bzh
+# HTTP/2 200, content-type: text/html
 
-```
+curl -I https://mailysleguilloux.bzh/images/mailys.webp
+# HTTP/2 200, content-type: image/webp, cache-control: ... immutable
 
-Expected response:
-```
-HTTP/2 200
-content-type: text/html; charset=utf-8
-```
-
----
-
-## Local Development
-
-```bash
-cd site
-python3 -m http.server 8080
-# Open http://localhost:8080
+curl -X POST https://mailysleguilloux.bzh/contact \
+  -H 'content-type: application/json' \
+  -d '{}'
+# HTTP/2 400 — missing fields
 ```
 
 ---
 
-## Maintenance
+## Local development
 
-### Redeploy manually (if not using Git integration)
+Static-only (no Worker):
 
 ```bash
-npx wrangler pages deploy site --project-name=mailysleguilloux
+cd site && python3 -m http.server 8080
 ```
 
-### View deployment logs
+Full Worker emulation (real routing, R2 stub, secrets from `.dev.vars`):
 
-In Cloudflare Dashboard > **Workers & Pages** > **mailysleguilloux** > **Deployments**
+```bash
+npx wrangler dev
+```
+
+`.dev.vars` (gitignored) holds secrets locally:
+
+```
+RESEND_API_KEY=re_dev_xxx
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+```
+
+---
+
+## Manual deploy
+
+```bash
+npx wrangler deploy
+```
 
 ---
 
 ## Troubleshooting
 
-### Site not updating after push
+**Push didn't deploy** — check **Workers & Pages → Builds** in the dashboard. The build log shows the exact `wrangler deploy` output.
 
-- Check Cloudflare Pages deployment status in the dashboard
-- Verify the build output directory is set to `site`
-- Check GitHub webhook delivery in repo Settings > Webhooks
+**Images return 404** — confirm the bucket exists and the object key matches the URL path (`/images/foo.webp` reads R2 object `foo.webp`).
 
-### DNS not resolving
+**Contact form returns 503** — `RESEND_API_KEY` not set as a secret on the Worker.
 
-```bash
-dig mailysleguilloux.bzh
-# Should return Cloudflare IPs
-```
-
-If DNS doesn't resolve, verify the custom domain is configured in Pages settings.
+**Contact form returns 400 "Vérification anti-robot échouée"** — `TURNSTILE_SECRET_KEY` doesn't match the site key, or the widget didn't load on the page.

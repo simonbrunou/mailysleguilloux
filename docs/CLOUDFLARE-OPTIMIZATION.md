@@ -1,141 +1,76 @@
-# Cloudflare Optimization Guide - mailysleguilloux.bzh
+# Cloudflare Optimization Guide — mailysleguilloux.bzh
 
-## What's Already Implemented
+## What's already implemented
 
-### 1. WebP Images with `<picture>` Fallbacks
-All JPEG images have been converted to WebP format with automatic fallback:
-- **~40-55% smaller** file sizes (951K total JPEG → ~560K WebP)
-- Browsers that don't support WebP (very rare) fall back to JPEG
-- Hero image uses `fetchpriority="high"` for faster LCP
+### 1. WebP images with `<picture>` fallbacks
+All hero/service/cabinet images ship as WebP with JPEG fallback through `<picture>`/`<source>`. Browsers without WebP support drop back to JPEG; the hero image uses `fetchpriority="high"` for faster LCP.
 
-### 2. `_headers` File (Cloudflare Pages)
-Custom headers configured for:
-- **Immutable caching** on images (`max-age=1yr, immutable`)
-- **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `Permissions-Policy`, etc.
-- **Early Hints** via `Link` headers — Cloudflare sends 103 responses to preload the hero image and fonts before the HTML is fully parsed
+### 2. Images served from R2
+Images live in the R2 bucket `mailysleguilloux-images` and are served via the Worker at `/images/*`. The Worker sets `Cache-Control: public, max-age=31536000, immutable` and an ETag. R2 has zero egress, so unlimited image views are free.
 
-### 3. `_redirects` File
-- `www.mailysleguilloux.bzh` → `mailysleguilloux.bzh` (301 permanent)
+### 3. `_headers` file (Cloudflare static assets)
+- Immutable caching on non-image static assets (`.css`, `.js`, font files, favicon).
+- Global security headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy`, `Strict-Transport-Security`.
+- `Link: rel=preload` headers — Cloudflare uses these for 103 Early Hints.
 
-### 4. Resource Preloading
-- Hero image (`mailys.webp`) preloaded in `<head>`
-- Google Fonts preloaded as style
-- `preconnect` to `fonts.googleapis.com` and `fonts.gstatic.com`
+### 4. Resource preloading
+- Hero image preloaded in `<head>`.
+- Google Fonts CSS preloaded; `preconnect` + `dns-prefetch` to `fonts.googleapis.com` / `fonts.gstatic.com`.
+
+### 5. Selective Worker invocation
+`wrangler.jsonc` declares `run_worker_first: ["/images/*", "/contact"]`. Every other request bypasses the Worker entirely and is served directly from static assets — zero Worker invocations for HTML/CSS/fonts.
 
 ---
 
-## Cloudflare Dashboard Settings to Enable
+## Cloudflare dashboard settings
 
-These settings should be toggled in the Cloudflare dashboard for maximum performance:
-
-### Speed → Optimization
-
-| Setting | Recommended | Why |
-|---------|-------------|-----|
-| **Auto Minify** (HTML, CSS, JS) | ON | Reduces file sizes on the edge |
-| **Early Hints** | ON | Sends 103 responses using the `Link` headers from `_headers` |
-| **HTTP/2** | ON (default) | Multiplexed connections |
-| **HTTP/3 (QUIC)** | ON | Faster connections, especially on mobile |
-| **Brotli compression** | ON | Better compression than gzip (~15-20% smaller) |
-| **Rocket Loader** | OFF | Not useful for inline scripts, can delay rendering |
-
-### Caching
-
-| Setting | Recommended | Why |
-|---------|-------------|-----|
-| **Caching Level** | Standard | Works with `_headers` Cache-Control |
-| **Browser Cache TTL** | Respect Existing Headers | Let `_headers` file control caching |
-| **Always Online** | ON | Shows cached version if origin is down |
-| **Tiered Cache** | ON | Reduces origin requests using upper-tier PoPs |
-
-### Security
-
-| Setting | Recommended | Why |
-|---------|-------------|-----|
-| **SSL/TLS** | Full (Strict) | End-to-end encryption |
-| **Always Use HTTPS** | ON | Force HTTPS |
-| **HSTS** | ON (via dashboard) | Browser remembers to use HTTPS |
-| **Minimum TLS** | TLS 1.2 | Drop insecure protocols |
+| Section                   | Setting                                  | Value                       | Why                                                |
+| ------------------------- | ---------------------------------------- | --------------------------- | -------------------------------------------------- |
+| Speed → Optimization      | Auto Minify (HTML/CSS/JS)                | ON                          | Edge-side minification.                            |
+| Speed → Optimization      | Early Hints                              | ON                          | Uses the `Link` headers from `_headers`.           |
+| Speed → Optimization      | HTTP/3 (QUIC)                            | ON                          | Faster on mobile.                                  |
+| Speed → Optimization      | Brotli                                   | ON                          | ~15–20% smaller than gzip.                         |
+| Speed → Optimization      | Rocket Loader                            | OFF                         | Hurts inline-script pages like this one.           |
+| Caching                   | Browser Cache TTL                        | Respect Existing Headers    | Let `_headers` drive caching.                      |
+| Caching                   | Always Online                            | ON                          | Show cached version if origin is down.             |
+| Caching                   | Tiered Cache                             | ON                          | Fewer origin hits across PoPs.                     |
+| SSL/TLS                   | Encryption mode                          | Full (Strict)               | End-to-end TLS.                                    |
+| SSL/TLS                   | Always Use HTTPS                         | ON                          | Force HTTPS.                                       |
+| SSL/TLS                   | HSTS                                     | ON                          | Browsers remember to use HTTPS.                    |
+| SSL/TLS                   | Minimum TLS                              | 1.2                         | Drop legacy protocols.                             |
 
 ---
 
-## R2 Strategy for Images
+## Operating the R2 image bucket
 
-R2 is ideal for serving your images. Here's how to set it up:
+Bucket: `mailysleguilloux-images` (bound as `R2` in `wrangler.jsonc`).
 
-### Why R2?
-- **Zero egress fees** — no charge for bandwidth serving images
-- **S3-compatible API** — easy to integrate
-- **Cloudflare CDN integration** — images served from the nearest edge PoP
-- **Custom domain** — serve from `images.mailysleguilloux.bzh` or a path like `/r2/`
+Upload a single image:
 
-### Setup Steps
-
-1. **Create an R2 bucket** in the Cloudflare dashboard:
-   ```
-   Bucket name: mailysleguilloux-assets
-   Location hint: EU (Western Europe) — closest to Bretagne
-   ```
-
-2. **Upload images** to R2:
-   ```bash
-   # Using wrangler
-   npx wrangler r2 object put mailysleguilloux-assets/images/mailys.webp --file site/images/mailys.webp
-   npx wrangler r2 object put mailysleguilloux-assets/images/mailys.jpg --file site/images/mailys.jpg
-   # ... repeat for all images
-   ```
-
-3. **Connect a custom domain** (recommended):
-   - Dashboard → R2 → Bucket → Settings → Public access
-   - Add custom domain: `assets.mailysleguilloux.bzh`
-   - This gives you CDN caching + your domain
-
-4. **Update image paths** in `index.html`:
-   ```html
-   <!-- Before -->
-   <source srcset="images/mailys.webp" type="image/webp">
-   <img src="images/mailys.jpg" ...>
-
-   <!-- After (with R2 custom domain) -->
-   <source srcset="https://assets.mailysleguilloux.bzh/images/mailys.webp" type="image/webp">
-   <img src="https://assets.mailysleguilloux.bzh/images/mailys.jpg" ...>
-   ```
-
-5. **Add Cache-Control on upload** for immutable caching:
-   ```bash
-   npx wrangler r2 object put mailysleguilloux-assets/images/mailys.webp \
-     --file site/images/mailys.webp \
-     --content-type image/webp \
-     --cache-control "public, max-age=31536000, immutable"
-   ```
-
-### R2 Benefits for This Site
-- Images are the heaviest assets (~1MB total)
-- Zero egress fees means unlimited image views at no cost
-- CDN-cached globally with Cloudflare's edge network
-- You can remove images from the `site/` directory to keep the Pages deployment lightweight
-
----
-
-## Other Cloudflare Features Worth Exploring
-
-### Cloudflare Web Analytics (Free)
-- Privacy-first analytics (no cookies, GDPR-compliant)
-- Already partially set up via `observability: true` in `wrangler.jsonc`
-- Add the JS snippet from the dashboard for client-side metrics
-
-### Page Rules / Cache Rules
-Create a cache rule for the Google Fonts CSS to extend caching:
-```
-If URL matches: fonts.googleapis.com/*
-Cache TTL: 1 month
+```bash
+npx wrangler r2 object put mailysleguilloux-images/mailys.webp \
+  --file site/images/mailys.webp \
+  --content-type image/webp \
+  --cache-control "public, max-age=31536000, immutable"
 ```
 
-### Cloudflare Turnstile (Free CAPTCHA Alternative)
-If you add a contact form later, use Turnstile instead of reCAPTCHA:
-- Free, privacy-preserving
-- Runs on Cloudflare's edge
-- Integrates with Workers for server-side validation
+Bulk-upload everything from `site/images/`:
 
-### Workers KV
-KV can be used for caching data at Cloudflare's edge with configurable TTL.
+```bash
+./scripts/upload-images.sh
+```
+
+The Worker (`src/index.js`) sets the cache and content-type headers on every response, so uploading without them still works — but uploading *with* them keeps R2's stored metadata clean.
+
+---
+
+## Other Cloudflare features worth exploring
+
+### Cloudflare Web Analytics (free)
+Privacy-first, no cookies, GDPR-compliant. Already enabled at the Worker level via `observability: true`. To add client-side metrics, uncomment the beacon snippet at the bottom of `site/index.html` and replace `YOUR_BEACON_TOKEN`.
+
+### Turnstile (already wired up)
+Replaces reCAPTCHA on the contact form. The repo ships with the always-passes test keys so preview deployments work without configuration. For production, swap in real keys from Cloudflare Dashboard → **Turnstile**.
+
+### Workers KV (potential future use)
+If global rate-limiting becomes a concern, replace the current per-PoP `caches.default` rate-limit with a KV-backed counter or a Cloudflare zone-level Rate Limiting rule.
