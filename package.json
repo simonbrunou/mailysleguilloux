@@ -4,6 +4,11 @@
   "type": "module",
   "scripts": {
     "start": "bun server.js",
-    "test": "bun test"
+    "test": "bun test",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.99.0"
   }
 }
