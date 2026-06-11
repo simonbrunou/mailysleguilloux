@@ -11,6 +11,8 @@ const SECURITY = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 
+// Note: applying HOME_LINK preloads to both "/" and "/index.html" is an intentional,
+// harmless divergence from the static _headers file (which only set them on "/").
 const HOME_LINK =
   "</images/mailys.webp>; rel=preload; as=image; type=image/webp, " +
   "<https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Raleway:wght@300;400;500&display=swap>; rel=preload; as=style";
@@ -87,7 +89,9 @@ function preflight() {
 }
 
 async function handleContact(req) {
-  const ip = req.headers.get("cf-connecting-ip") || "unknown";
+  // Behind the Cloudflare Tunnel, cf-connecting-ip is always set; the fallbacks
+  // are only for local/health-check requests.
+  const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "unknown";
   const prev = lastSeen.get(ip);
   if (prev && Date.now() - prev < RATE_WINDOW_MS) {
     return json({ ok: false, message: "Veuillez patienter 60 secondes avant de renvoyer un message." }, 429);
@@ -101,6 +105,11 @@ async function handleContact(req) {
   if (!name || !email || !message) {
     return json({ ok: false, message: "Veuillez remplir les champs obligatoires (nom, e-mail, message)." }, 400);
   }
+
+  if (name.length > 200 || email.length > 254 || message.length > 5000 || (subject && subject.length > 300)) {
+    return json({ ok: false, message: "Un ou plusieurs champs dépassent la longueur maximale autorisée." }, 400);
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ ok: false, message: "Adresse e-mail invalide." }, 400);
   }
@@ -150,7 +159,13 @@ export async function fetchHandler(req) {
   if (pathname === "/contact") {
     if (req.method === "OPTIONS") return preflight();
     if (req.method === "POST") return handleContact(req);
-    return new Response("Method Not Allowed", { status: 405 });
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: {
+        "Allow": "POST, OPTIONS",
+        "Access-Control-Allow-Origin": ALLOW_ORIGIN,
+      },
+    });
   }
   return serveStatic(pathname);
 }
