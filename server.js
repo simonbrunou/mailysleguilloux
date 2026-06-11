@@ -154,3 +154,9 @@ export async function fetchHandler(req) {
   }
   return serveStatic(pathname);
 }
+
+if (import.meta.main) {
+  const port = Number(process.env.PORT) || 3000;
+  Bun.serve({ port, fetch: fetchHandler });
+  console.log(`mailysleguilloux listening on :${port}`);
+}
