@@ -16,6 +16,7 @@ test("homepage gets short cache + preload Links", () => {
   const h = headersFor("/index.html");
   expect(h["Cache-Control"]).toBe("public, max-age=3600, must-revalidate");
   expect(h["Link"]).toContain("</images/mailys.webp>; rel=preload; as=image");
+  expect(h["Link"]).toContain("Cormorant+Garamond");
 });
 
 test("static assets get immutable 1y cache", () => {
@@ -57,9 +58,6 @@ test("path traversal is rejected", async () => {
 
 // ── Task 4: /contact endpoint ─────────────────────────────────────────────────
 
-// alias to match the plan's test code
-const fh = fetchHandler;
-
 const realFetch = globalThis.fetch;
 beforeEach(() => { process.env.RESEND_API_KEY = "test_key"; __resetRateLimit(); });
 afterEach(() => { globalThis.fetch = realFetch; });
@@ -73,19 +71,19 @@ function post(body, ip = "1.1.1.1") {
 }
 
 test("OPTIONS /contact returns CORS preflight", async () => {
-  const res = await fh(new Request("http://x/contact", { method: "OPTIONS" }));
+  const res = await fetchHandler(new Request("http://x/contact", { method: "OPTIONS" }));
   expect(res.status).toBe(204);
   expect(res.headers.get("access-control-allow-methods")).toContain("POST");
 });
 
 test("missing required fields -> 400", async () => {
-  const res = await fh(post({ name: "A" }));
+  const res = await fetchHandler(post({ name: "A" }));
   expect(res.status).toBe(400);
   expect((await res.json()).ok).toBe(false);
 });
 
 test("invalid email -> 400", async () => {
-  const res = await fh(post({ name: "A", email: "nope", message: "hi" }));
+  const res = await fetchHandler(post({ name: "A", email: "nope", message: "hi" }));
   expect(res.status).toBe(400);
 });
 
@@ -95,7 +93,7 @@ test("valid submission sends via Resend and returns 200", async () => {
     captured = { urlArg, opts };
     return new Response("{}", { status: 200 });
   };
-  const res = await fh(post({ name: "Jean", email: "j@example.com", subject: "Hello", message: "Bonjour" }));
+  const res = await fetchHandler(post({ name: "Jean", email: "j@example.com", subject: "Hello", message: "Bonjour" }));
   expect(res.status).toBe(200);
   expect((await res.json()).ok).toBe(true);
   expect(captured.urlArg).toBe("https://api.resend.com/emails");
@@ -107,17 +105,30 @@ test("valid submission sends via Resend and returns 200", async () => {
 
 test("second submission from same IP within 60s -> 429", async () => {
   globalThis.fetch = async () => new Response("{}", { status: 200 });
-  const ok = await fh(post({ name: "A", email: "a@b.co", message: "x" }, "9.9.9.9"));
+  const ok = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "9.9.9.9"));
   expect(ok.status).toBe(200);
-  const again = await fh(post({ name: "A", email: "a@b.co", message: "x" }, "9.9.9.9"));
+  const again = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "9.9.9.9"));
   expect(again.status).toBe(429);
 });
 
 test("Resend failure does NOT consume the rate-limit budget", async () => {
   globalThis.fetch = async () => new Response("err", { status: 500 });
-  const fail = await fh(post({ name: "A", email: "a@b.co", message: "x" }, "8.8.8.8"));
+  const fail = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "8.8.8.8"));
   expect(fail.status).toBe(502);
   globalThis.fetch = async () => new Response("{}", { status: 200 });
-  const ok = await fh(post({ name: "A", email: "a@b.co", message: "x" }, "8.8.8.8"));
+  const ok = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "8.8.8.8"));
   expect(ok.status).toBe(200);
+});
+
+test("oversized message field -> 400", async () => {
+  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x".repeat(6000) }));
+  expect(res.status).toBe(400);
+  expect((await res.json()).ok).toBe(false);
+});
+
+test("missing RESEND_API_KEY returns 503 with ok:false", async () => {
+  delete process.env.RESEND_API_KEY;
+  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hello" }));
+  expect(res.status).toBe(503);
+  expect((await res.json()).ok).toBe(false);
 });
