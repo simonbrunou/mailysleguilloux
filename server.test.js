@@ -26,3 +26,30 @@ test("sitemap/robots get day cache", () => {
   expect(headersFor("/sitemap.xml")["Cache-Control"]).toBe("public, max-age=86400, must-revalidate");
   expect(headersFor("/robots.txt")["Cache-Control"]).toBe("public, max-age=86400, must-revalidate");
 });
+
+// append to server.test.js
+import { fetchHandler } from "./server.js";
+
+test("serves index.html at /", async () => {
+  const res = await fetchHandler(new Request("http://x/"));
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toContain("text/html");
+  expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+});
+
+test("serves a known static asset with immutable cache", async () => {
+  const res = await fetchHandler(new Request("http://x/robots.txt"));
+  expect(res.status).toBe(200);
+  expect(res.headers.get("cache-control")).toBe("public, max-age=86400, must-revalidate");
+});
+
+test("unknown path returns 404 page", async () => {
+  const res = await fetchHandler(new Request("http://x/no-such-page"));
+  expect(res.status).toBe(404);
+  expect(res.headers.get("content-type")).toContain("text/html");
+});
+
+test("path traversal is rejected", async () => {
+  const res = await fetchHandler(new Request("http://x/../package.json"));
+  expect(res.status).toBe(404);
+});
