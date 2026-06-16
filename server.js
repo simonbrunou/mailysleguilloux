@@ -6,8 +6,10 @@ const IMMUTABLE = new Set(["css","js","woff","woff2","webp","jpg","jpeg","png","
 
 // 'unsafe-inline' is required by the static page's inline <style>, inline <script>,
 // and inline event handlers (onerror on <img>). External origins are limited to
-// Google Fonts and the optional Cloudflare Insights beacon (currently commented out
-// in index.html, pre-allowed so enabling it needs no CSP change).
+// Google Fonts, the optional Cloudflare Insights beacon (currently commented out
+// in index.html, pre-allowed so enabling it needs no CSP change), and Cloudflare
+// Turnstile (challenges.cloudflare.com) for the contact-form anti-bot widget
+// (its api.js in script-src, its widget iframe in frame-src).
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -17,8 +19,9 @@ const CSP = [
   "img-src 'self' data:",
   "font-src 'self' https://fonts.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
-  "connect-src 'self' https://cloudflareinsights.com",
+  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com",
+  "connect-src 'self' https://cloudflareinsights.com https://challenges.cloudflare.com",
+  "frame-src https://challenges.cloudflare.com",
 ].join("; ");
 
 const SECURITY = {
@@ -131,6 +134,30 @@ async function handleContact(req) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ ok: false, message: "Adresse e-mail invalide." }, 400);
   }
+
+  // Cloudflare Turnstile anti-bot check. Fail-open if the secret isn't configured
+  // (matches the RESEND_API_KEY graceful pattern); enforce when it IS set.
+  if (process.env.TURNSTILE_SECRET_KEY) {
+    const token = body["cf-turnstile-response"];
+    if (!token) {
+      return json({ ok: false, message: "Validation anti-robot manquante. Veuillez cocher la case." }, 400);
+    }
+    try {
+      const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ secret: process.env.TURNSTILE_SECRET_KEY, response: token, remoteip: ip }),
+      });
+      const outcome = await verify.json();
+      if (!outcome.success) {
+        return json({ ok: false, message: "Échec de la validation anti-robot. Veuillez réessayer." }, 400);
+      }
+    } catch (err) {
+      console.error("Turnstile verify error:", err);
+      return json({ ok: false, message: "Erreur lors de la validation anti-robot." }, 502);
+    }
+  }
+
   if (!process.env.RESEND_API_KEY) {
     console.error("RESEND_API_KEY not configured");
     return json({ ok: false, message: "Service de messagerie non configuré." }, 503);
