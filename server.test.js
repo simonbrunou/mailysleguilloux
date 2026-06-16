@@ -145,3 +145,40 @@ test("missing RESEND_API_KEY returns 503 with ok:false", async () => {
   expect(res.status).toBe(503);
   expect((await res.json()).ok).toBe(false);
 });
+
+// ── Turnstile anti-bot (enforced only when TURNSTILE_SECRET_KEY is set) ───────
+
+test("Turnstile configured + missing token -> 400", async () => {
+  process.env.TURNSTILE_SECRET_KEY = "test_secret";
+  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hi" }, "3.3.3.3"));
+  expect(res.status).toBe(400);
+  delete process.env.TURNSTILE_SECRET_KEY;
+});
+
+test("Turnstile configured + failed verification -> 400 (Resend not called)", async () => {
+  process.env.TURNSTILE_SECRET_KEY = "test_secret";
+  let resendCalled = false;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("siteverify")) return new Response(JSON.stringify({ success: false }), { status: 200 });
+    resendCalled = true;
+    return new Response("{}", { status: 200 });
+  };
+  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hi", "cf-turnstile-response": "bad" }, "4.4.4.4"));
+  expect(res.status).toBe(400);
+  expect(resendCalled).toBe(false);
+  delete process.env.TURNSTILE_SECRET_KEY;
+});
+
+test("Turnstile configured + passing verification -> 200 and sends via Resend", async () => {
+  process.env.TURNSTILE_SECRET_KEY = "test_secret";
+  let resendCalled = false;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("siteverify")) return new Response(JSON.stringify({ success: true }), { status: 200 });
+    if (String(url).includes("resend")) resendCalled = true;
+    return new Response("{}", { status: 200 });
+  };
+  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hi", "cf-turnstile-response": "good" }, "5.5.5.5"));
+  expect(res.status).toBe(200);
+  expect(resendCalled).toBe(true);
+  delete process.env.TURNSTILE_SECRET_KEY;
+});
