@@ -10,6 +10,18 @@ test("global security headers on every path", () => {
   expect(h["X-Frame-Options"]).toBe("SAMEORIGIN");
   expect(h["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
   expect(h["Permissions-Policy"]).toBe("camera=(), microphone=(), geolocation=()");
+  expect(h["Content-Security-Policy"]).toContain("default-src 'self'");
+});
+
+test("CSP locks sources down but allows the page's inline + Google Fonts origins", () => {
+  const csp = headersFor("/index.html")["Content-Security-Policy"];
+  expect(csp).toContain("object-src 'none'");
+  expect(csp).toContain("frame-ancestors 'self'");
+  expect(csp).toContain("form-action 'self'");
+  // inline <style>/<script>/onerror handlers must keep working on the static page
+  expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
+  expect(csp).toContain("script-src 'self' 'unsafe-inline'");
+  expect(csp).toContain("font-src 'self' https://fonts.gstatic.com");
 });
 
 test("homepage gets short cache + preload Links", () => {
@@ -37,6 +49,7 @@ test("serves index.html at /", async () => {
   expect(res.status).toBe(200);
   expect(res.headers.get("content-type")).toContain("text/html");
   expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+  expect(res.headers.get("content-security-policy")).toContain("default-src 'self'");
 });
 
 test("serves a known static asset with immutable cache", async () => {

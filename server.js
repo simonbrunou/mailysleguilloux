@@ -4,11 +4,29 @@ const SITE_DIR = join(import.meta.dir, "site");
 
 const IMMUTABLE = new Set(["css","js","woff","woff2","webp","jpg","jpeg","png","svg","ico","avif"]);
 
+// 'unsafe-inline' is required by the static page's inline <style>, inline <script>,
+// and inline event handlers (onerror on <img>). External origins are limited to
+// Google Fonts and the optional Cloudflare Insights beacon (currently commented out
+// in index.html, pre-allowed so enabling it needs no CSP change).
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  "img-src 'self' data:",
+  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+  "connect-src 'self' https://cloudflareinsights.com",
+].join("; ");
+
 const SECURITY = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "SAMEORIGIN",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Content-Security-Policy": CSP,
 };
 
 // Note: applying HOME_LINK preloads to both "/" and "/index.html" is an intentional,
