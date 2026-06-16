@@ -769,8 +769,8 @@
 
 <script>document.querySelectorAll(".faq-question").forEach(function(e){e.addEventListener("click",function(){var t=e.closest(".faq-item"),n=t.classList.contains("open");t.classList.toggle("open"),e.setAttribute("aria-expanded",!n)})});</script>
 
-<!-- Cloudflare Web Analytics — replace YOUR_BEACON_TOKEN with the token from your Cloudflare dashboard (Web Analytics > Add Site) -->
-<!-- <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "YOUR_BEACON_TOKEN"}'></script> -->
+<!-- Cloudflare Web Analytics (beacon token is public; CSP pre-allows static.cloudflareinsights.com + cloudflareinsights.com) -->
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6753dc9244194e6ebf7d273f6f4fe469"}'></script>
 
 </body>
 </html>
