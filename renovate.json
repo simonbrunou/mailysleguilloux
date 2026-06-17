@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "description": "Auto-merge low-risk updates once CI passes",
+      "matchUpdateTypes": ["patch", "pin", "digest", "lockFileMaintenance"],
+      "automerge": true
+    },
+    {
+      "description": "Auto-merge devDependency minor bumps once CI passes",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": true
+    }
+  ]
+}
