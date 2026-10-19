@@ -14,6 +14,10 @@ function handler(sent = []) {
 }
 const fetchHandler = handler();
 
+function get(path) {
+  return fetchHandler(new Request("http://x" + path));
+}
+
 function post(body, ip = "1.1.1.1") {
   return new Request("http://x/contact", {
     method: "POST",
@@ -107,7 +111,7 @@ async function externalLoads() {
 }
 
 test("the CSP allows every external origin site/index.html loads", async () => {
-  const csp = (await fetchHandler(new Request("http://x/"))).headers.get("content-security-policy");
+  const csp = (await get("/")).headers.get("content-security-policy");
   const sources = Object.fromEntries(csp.split("; ").map((d) => [d.split(" ")[0], d.split(" ").slice(1)]));
   const loads = await externalLoads();
   expect(loads.length).toBeGreaterThan(0);
@@ -119,7 +123,7 @@ test("the CSP allows every external origin site/index.html loads", async () => {
 
 test("the homepage gets a short cache and preload Links, whichever URL serves it", async () => {
   for (const path of ["/", "/index.html", "/index"]) {
-    const res = await fetchHandler(new Request("http://x" + path));
+    const res = await get(path);
     expect([path, res.status]).toEqual([path, 200]);
     expect([path, res.headers.get("cache-control")]).toEqual([path, "public, max-age=3600, must-revalidate"]);
     expect(res.headers.get("link")).toContain("</images/mailys.webp>; rel=preload; as=image");
@@ -129,7 +133,7 @@ test("the homepage gets a short cache and preload Links, whichever URL serves it
 
 test("sitemap and robots get a day cache", async () => {
   for (const path of ["/sitemap.xml", "/robots.txt"]) {
-    const res = await fetchHandler(new Request("http://x" + path));
+    const res = await get(path);
     expect([path, res.status]).toEqual([path, 200]);
     expect([path, res.headers.get("cache-control")]).toEqual([path, "public, max-age=86400, must-revalidate"]);
   }
@@ -137,7 +141,7 @@ test("sitemap and robots get a day cache", async () => {
 
 test("images get an immutable one-year cache", async () => {
   for (const path of ["/images/mailys.webp", "/images/mailys.jpg", "/images/favicon.avif"]) {
-    const res = await fetchHandler(new Request("http://x" + path));
+    const res = await get(path);
     expect([path, res.status]).toEqual([path, 200]);
     expect([path, res.headers.get("cache-control")]).toEqual([path, "public, max-age=31536000, immutable"]);
   }
@@ -145,7 +149,7 @@ test("images get an immutable one-year cache", async () => {
 
 test("a 404 is never cached, even for a missing image", async () => {
   for (const path of ["/no-such-page", "/images/missing.webp"]) {
-    const res = await fetchHandler(new Request("http://x" + path));
+    const res = await get(path);
     expect([path, res.status]).toEqual([path, 404]);
     expect([path, res.headers.get("cache-control")]).toEqual([path, null]);
   }
@@ -154,20 +158,20 @@ test("a 404 is never cached, even for a missing image", async () => {
 // ── Static file serving ───────────────────────────────────────────────────────
 
 test("serves index.html at /", async () => {
-  const res = await fetchHandler(new Request("http://x/"));
+  const res = await get("/");
   expect(res.status).toBe(200);
   expect(res.headers.get("content-type")).toContain("text/html");
 });
 
 test("unknown path returns 404 page", async () => {
-  const res = await fetchHandler(new Request("http://x/no-such-page"));
+  const res = await get("/no-such-page");
   expect(res.status).toBe(404);
   expect(res.headers.get("content-type")).toContain("text/html");
 });
 
 test("the 404 page answers 404 under its own URL too", async () => {
   for (const path of ["/404", "/404.html"]) {
-    const res = await fetchHandler(new Request("http://x" + path));
+    const res = await get(path);
     expect([path, res.status]).toEqual([path, 404]);
   }
 });
@@ -177,7 +181,7 @@ test("the 404 page answers 404 under its own URL too", async () => {
 test("an encoded path traversal gets the 404 page, not a file outside site/", async () => {
   const notFoundPage = await Bun.file(join(import.meta.dir, "site", "404.html")).text();
   for (const path of ["/..%2fpackage.json", "/images%2f..%2f..%2fserver.js"]) {
-    const res = await fetchHandler(new Request("http://x" + path));
+    const res = await get(path);
     expect([path, res.status]).toEqual([path, 404]);
     expect([path, await res.text()]).toEqual([path, notFoundPage]);
   }
@@ -185,7 +189,7 @@ test("an encoded path traversal gets the 404 page, not a file outside site/", as
 
 test("a URL that can't name a file gets 400 instead of an exception", async () => {
   for (const path of ["/%E0%A4%A", "/a%00b"]) {
-    const res = await fetchHandler(new Request("http://x" + path));
+    const res = await get(path);
     expect([path, res.status]).toEqual([path, 400]);
     expect([path, res.headers.get("content-type")]).toEqual([path, "text/plain; charset=utf-8"]);
   }

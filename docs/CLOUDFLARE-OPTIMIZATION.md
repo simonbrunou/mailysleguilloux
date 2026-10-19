@@ -9,7 +9,7 @@ All JPEG images have been converted to WebP format with automatic fallback:
 - Hero image uses `fetchpriority="high"` for faster LCP
 
 ### 2. Response headers (`server.js`)
-The Bun server sets every response header; `server.js` is the only place header rules live:
+The Bun server sets every response header; `server.js` is the only place the header policy lives:
 - **Immutable caching** on images (`max-age=1yr, immutable`)
 - **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `Permissions-Policy`, etc.
 - **Early Hints** via `Link` headers — Cloudflare sends 103 responses to preload the hero image and fonts before the HTML is fully parsed

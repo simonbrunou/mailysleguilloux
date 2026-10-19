@@ -9,5 +9,5 @@ The path a visitor's message takes from the contact form to Maïlys's inbox: che
 _Avoid_: contact handler, contact endpoint, contact form backend
 
 **Header policy**:
-The headers every reply from the site carries, whatever produced it: the browser protections, including the outside origins the page may load from, and how long a browser may keep the file it was sent.
+The headers the site puts on its replies: the browser protections every reply carries, whatever produced it, including the outside origins the page may load from; and, for the site's files, how long a browser may keep them.
 _Avoid_: header rules, headers file

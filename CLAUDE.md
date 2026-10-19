@@ -12,7 +12,7 @@ site's primary purpose.**
   Cloudflare Workers/R2 — do NOT reintroduce Workers/wrangler/R2 assumptions.
 
 ## server.js + contact-intake.js (the only dynamic code)
-`server.js` is the **header policy** module and the only place header rules live. It serves
+`server.js` is the **header policy** module and the only place the header policy lives. It serves
 `site/`, routes `POST /contact` to the contact intake, and gives every response (file, contact
 reply, 400/404/405) the security headers and CSP. Every branch of `route()` returns plain
 `{ status, body, headers }` and only `fetchHandler` builds the `Response`; add new branches the

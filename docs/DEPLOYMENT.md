@@ -68,7 +68,7 @@ HTTP/2 200
 content-type: text/html; charset=utf-8
 ```
 
-Every response also carries the security headers and CSP set in `server.js`, the only place header rules live.
+Every response also carries the security headers and CSP set in `server.js`, the only place the header policy lives.
 
 ---
 

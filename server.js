@@ -3,8 +3,8 @@
 // Header policy: turns a request into a response and gives every response the
 // security headers and the CSP, whatever produced its body: a file from site/, a
 // contact intake reply, or a 400/404/405. Cache-Control and the homepage's preload
-// Link are keyed on the file actually served. This is the only place header rules
-// live; server.test.js checks the CSP against what site/index.html loads.
+// Link are keyed on the file actually served. This is the only place the header
+// policy lives; server.test.js checks the CSP against what site/index.html loads.
 import { join } from "path";
 import { contactIntakeFromEnv } from "./contact-intake.js";
 const SITE_DIR = join(import.meta.dir, "site");
@@ -46,14 +46,14 @@ const HOME_LINK =
 
 // Cache-Control (and the homepage's preload Link) for a file served from site/,
 // named by its path inside site/.
-function cacheHeaders(file) {
+function fileHeaders(file) {
   if (file === "index.html") return { "Cache-Control": "public, max-age=3600, must-revalidate", "Link": HOME_LINK };
   if (file === "sitemap.xml" || file === "robots.txt") return { "Cache-Control": "public, max-age=86400, must-revalidate" };
   if (IMMUTABLE.has(file.split(".").pop().toLowerCase())) return { "Cache-Control": "public, max-age=31536000, immutable" };
   return {};
 }
 
-const TEXT = { "Content-Type": "text/plain; charset=utf-8" };
+const TEXT_HEADERS = { "Content-Type": "text/plain; charset=utf-8" };
 
 function notFound() {
   return {
@@ -75,7 +75,7 @@ async function serveStatic(pathname) {
     if (!(await file.exists())) continue;
     const served = candidate.slice(SITE_DIR.length + 1);
     if (served === "404.html") return notFound(); // no soft 404 at /404
-    return { status: 200, body: file, headers: cacheHeaders(served) };
+    return { status: 200, body: file, headers: fileHeaders(served) };
   }
   return notFound();
 }
@@ -96,10 +96,10 @@ function pathOf(request) {
 // the Response, so no reply can leave without the security headers.
 async function route(request, contactIntake) {
   const pathname = pathOf(request);
-  if (pathname === null) return { status: 400, body: "Bad Request", headers: TEXT };
+  if (pathname === null) return { status: 400, body: "Bad Request", headers: TEXT_HEADERS };
   if (pathname === "/contact") {
     if (request.method !== "POST") {
-      return { status: 405, body: "Method Not Allowed", headers: { ...TEXT, "Allow": "POST" } };
+      return { status: 405, body: "Method Not Allowed", headers: { ...TEXT_HEADERS, "Allow": "POST" } };
     }
     const { status, body } = await contactIntake.submit(request);
     return { status, body: JSON.stringify(body), headers: { "Content-Type": "application/json" } };
