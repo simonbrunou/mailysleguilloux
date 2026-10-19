@@ -5,7 +5,7 @@ practitioner (kinésiologue/guérisseuse) near Vannes, Morbihan. **Local SEO is 
 site's primary purpose.**
 
 ## Stack & run
-- **Bun** only. `bun server.js` (start) · `bun test` (runs server.test.js + contact-intake.test.js + business-facts.test.js).
+- **Bun** only. `bun server.js` (start) · `bun test` (runs every `*.test.js`).
 - No framework, no build step, no bundler. `site/index.html` is hand-authored with
   inlined `<style>` and `<script>`. Edit it directly.
 - Self-hosted on **Coolify behind a Cloudflare Tunnel**. Recently migrated OFF
