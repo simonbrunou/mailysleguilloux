@@ -1,6 +1,16 @@
 // server.test.js
-import { test, expect, beforeEach, afterEach } from "bun:test";
-import { headersFor, fetchHandler, __resetRateLimit } from "./server.js";
+// Contact intake behaviour (validation, rate limit, Turnstile, Resend) is tested
+// in contact-intake.test.js; this file covers headers, static files and routing.
+import { test, expect } from "bun:test";
+import { headersFor, createFetchHandler } from "./server.js";
+import { createContactIntake, alwaysPassHumanCheck } from "./contact-intake.js";
+
+// A handler around a fresh contact intake, so no test inherits another's rate limit.
+function handler(sent = []) {
+  const mailer = { send: async (email) => { sent.push(email); return "sent"; } };
+  return createFetchHandler({ contactIntake: createContactIntake({ humanCheck: alwaysPassHumanCheck, mailer }) });
+}
+const fetchHandler = handler();
 
 // ── Task 2: Header rules ──────────────────────────────────────────────────────
 
@@ -69,11 +79,7 @@ test("path traversal is rejected", async () => {
   expect(res.status).toBe(404);
 });
 
-// ── Task 4: /contact endpoint ─────────────────────────────────────────────────
-
-const realFetch = globalThis.fetch;
-beforeEach(() => { process.env.RESEND_API_KEY = "test_key"; __resetRateLimit(); });
-afterEach(() => { globalThis.fetch = realFetch; });
+// ── Task 4: /contact routing ──────────────────────────────────────────────────
 
 function post(body, ip = "1.1.1.1") {
   return new Request("http://x/contact", {
@@ -89,96 +95,25 @@ test("OPTIONS /contact returns CORS preflight", async () => {
   expect(res.headers.get("access-control-allow-methods")).toContain("POST");
 });
 
-test("missing required fields -> 400", async () => {
-  const res = await fetchHandler(post({ name: "A" }));
-  expect(res.status).toBe(400);
-  expect((await res.json()).ok).toBe(false);
-});
-
-test("invalid email -> 400", async () => {
-  const res = await fetchHandler(post({ name: "A", email: "nope", message: "hi" }));
-  expect(res.status).toBe(400);
-});
-
-test("valid submission sends via Resend and returns 200", async () => {
-  let captured;
-  globalThis.fetch = async (urlArg, opts) => {
-    captured = { urlArg, opts };
-    return new Response("{}", { status: 200 });
-  };
-  const res = await fetchHandler(post({ name: "Jean", email: "j@example.com", subject: "Hello", message: "Bonjour" }));
+test("POST /contact answers with the contact intake's reply as JSON", async () => {
+  const sent = [];
+  const res = await handler(sent)(post({ name: "Jean", email: "j@example.com", message: "Bonjour" }));
   expect(res.status).toBe(200);
-  expect((await res.json()).ok).toBe(true);
-  expect(captured.urlArg).toBe("https://api.resend.com/emails");
-  const sent = JSON.parse(captured.opts.body);
-  expect(sent.to).toEqual(["contact@mailysleguilloux.bzh"]);
-  expect(sent.reply_to).toBe("j@example.com");
-  expect(sent.subject).toBe("[Contact] Hello");
+  expect(res.headers.get("content-type")).toBe("application/json");
+  expect(res.headers.get("access-control-allow-origin")).toBe("https://mailysleguilloux.bzh");
+  expect(await res.json()).toEqual({ ok: true, message: "Message envoyé avec succès." });
+  expect(sent).toHaveLength(1);
+  expect(sent[0].replyTo).toBe("j@example.com");
 });
 
-test("second submission from same IP within 60s -> 429", async () => {
-  globalThis.fetch = async () => new Response("{}", { status: 200 });
-  const ok = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "9.9.9.9"));
-  expect(ok.status).toBe(200);
-  const again = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "9.9.9.9"));
-  expect(again.status).toBe(429);
-});
-
-test("Resend failure does NOT consume the rate-limit budget", async () => {
-  globalThis.fetch = async () => new Response("err", { status: 500 });
-  const fail = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "8.8.8.8"));
-  expect(fail.status).toBe(502);
-  globalThis.fetch = async () => new Response("{}", { status: 200 });
-  const ok = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x" }, "8.8.8.8"));
-  expect(ok.status).toBe(200);
-});
-
-test("oversized message field -> 400", async () => {
-  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "x".repeat(6000) }));
+test("POST /contact keeps the contact intake's error status", async () => {
+  const res = await handler()(post({ name: "A" }));
   expect(res.status).toBe(400);
-  expect((await res.json()).ok).toBe(false);
+  expect(await res.json()).toEqual({ ok: false, message: "Veuillez remplir les champs obligatoires (nom, e-mail, message)." });
 });
 
-test("missing RESEND_API_KEY returns 503 with ok:false", async () => {
-  delete process.env.RESEND_API_KEY;
-  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hello" }));
-  expect(res.status).toBe(503);
-  expect((await res.json()).ok).toBe(false);
-});
-
-// ── Turnstile anti-bot (enforced only when TURNSTILE_SECRET_KEY is set) ───────
-
-test("Turnstile configured + missing token -> 400", async () => {
-  process.env.TURNSTILE_SECRET_KEY = "test_secret";
-  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hi" }, "3.3.3.3"));
-  expect(res.status).toBe(400);
-  delete process.env.TURNSTILE_SECRET_KEY;
-});
-
-test("Turnstile configured + failed verification -> 400 (Resend not called)", async () => {
-  process.env.TURNSTILE_SECRET_KEY = "test_secret";
-  let resendCalled = false;
-  globalThis.fetch = async (url) => {
-    if (String(url).includes("siteverify")) return new Response(JSON.stringify({ success: false }), { status: 200 });
-    resendCalled = true;
-    return new Response("{}", { status: 200 });
-  };
-  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hi", "cf-turnstile-response": "bad" }, "4.4.4.4"));
-  expect(res.status).toBe(400);
-  expect(resendCalled).toBe(false);
-  delete process.env.TURNSTILE_SECRET_KEY;
-});
-
-test("Turnstile configured + passing verification -> 200 and sends via Resend", async () => {
-  process.env.TURNSTILE_SECRET_KEY = "test_secret";
-  let resendCalled = false;
-  globalThis.fetch = async (url) => {
-    if (String(url).includes("siteverify")) return new Response(JSON.stringify({ success: true }), { status: 200 });
-    if (String(url).includes("resend")) resendCalled = true;
-    return new Response("{}", { status: 200 });
-  };
-  const res = await fetchHandler(post({ name: "A", email: "a@b.co", message: "hi", "cf-turnstile-response": "good" }, "5.5.5.5"));
-  expect(res.status).toBe(200);
-  expect(resendCalled).toBe(true);
-  delete process.env.TURNSTILE_SECRET_KEY;
+test("other methods on /contact -> 405", async () => {
+  const res = await fetchHandler(new Request("http://x/contact"));
+  expect(res.status).toBe(405);
+  expect(res.headers.get("allow")).toBe("POST, OPTIONS");
 });
