@@ -30,11 +30,13 @@ Serves `site/` statically + a single `POST /contact` endpoint, plus security hea
 - `server.test.js` (`bun:test`) asserts **EXACT** strings — CSP directives, Cache-Control
   max-age values, the rate-limit window, and the Resend + Turnstile request shapes. Changing
   a server.js constant breaks tests; update both together. (A PostToolUse hook reminds you.)
-- **Business facts are duplicated** across visible HTML, meta tags, 5 JSON-LD blocks, and
-  sitemap.xml: phone `+33650912604`, `18 rue de Plaisance` / `56890 Saint-Avé`, geo
-  `47.6869`/`-2.7356`, price. Change ALL occurrences together — the FAQ JSON-LD must mirror
-  the visible FAQ, and `review[]` / `ratingCount` must mirror the visible testimonials. Use
-  the `seo-structured-data-reviewer` agent after editing `index.html`.
+- **Business facts are duplicated** across visible HTML, meta tags, 5 JSON-LD blocks,
+  sitemap.xml and robots.txt (phone, email, address, geo, price, FAQ, testimonials, site URL,
+  image sizes). `business-facts.test.js` is the guard: `bun test` fails when two copies
+  disagree, so change every copy together. Facts that only the JSON-LD states sit on its
+  `JSON_LD_ONLY` allowlist until the owner confirms them; don't add to it. Bump the sitemap
+  `lastmod` in any commit that changes `index.html`. Still run the
+  `seo-structured-data-reviewer` agent after editing `index.html`.
 - Images live in `site/images/` and are **committed** to the repo (jpg + webp pairs).
 
 ## Agent skills
