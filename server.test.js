@@ -5,11 +5,12 @@ import { test, expect } from "bun:test";
 import { headersFor, createFetchHandler } from "./server.js";
 import { createContactIntake, alwaysPassHumanCheck } from "./contact-intake.js";
 
-const sent = [];
-const mailer = { send: async (email) => { sent.push(email); return "sent"; } };
-const fetchHandler = createFetchHandler({
-  contactIntake: createContactIntake({ humanCheck: alwaysPassHumanCheck, mailer }),
-});
+// A handler around a fresh contact intake, so no test inherits another's rate limit.
+function handler(sent = []) {
+  const mailer = { send: async (email) => { sent.push(email); return "sent"; } };
+  return createFetchHandler({ contactIntake: createContactIntake({ humanCheck: alwaysPassHumanCheck, mailer }) });
+}
+const fetchHandler = handler();
 
 // ── Task 2: Header rules ──────────────────────────────────────────────────────
 
@@ -95,16 +96,18 @@ test("OPTIONS /contact returns CORS preflight", async () => {
 });
 
 test("POST /contact answers with the contact intake's reply as JSON", async () => {
-  const res = await fetchHandler(post({ name: "Jean", email: "j@example.com", message: "Bonjour" }, "1.1.1.1"));
+  const sent = [];
+  const res = await handler(sent)(post({ name: "Jean", email: "j@example.com", message: "Bonjour" }));
   expect(res.status).toBe(200);
   expect(res.headers.get("content-type")).toBe("application/json");
   expect(res.headers.get("access-control-allow-origin")).toBe("https://mailysleguilloux.bzh");
   expect(await res.json()).toEqual({ ok: true, message: "Message envoyé avec succès." });
-  expect(sent.at(-1).replyTo).toBe("j@example.com");
+  expect(sent).toHaveLength(1);
+  expect(sent[0].replyTo).toBe("j@example.com");
 });
 
 test("POST /contact keeps the contact intake's error status", async () => {
-  const res = await fetchHandler(post({ name: "A" }, "2.2.2.2"));
+  const res = await handler()(post({ name: "A" }));
   expect(res.status).toBe(400);
   expect(await res.json()).toEqual({ ok: false, message: "Veuillez remplir les champs obligatoires (nom, e-mail, message)." });
 });

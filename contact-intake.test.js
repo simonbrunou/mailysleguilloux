@@ -6,6 +6,9 @@ import {
 
 afterEach(() => mock.restore());
 
+const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const RESEND = "https://api.resend.com/emails";
+
 // ── Fakes ─────────────────────────────────────────────────────────────────────
 
 // Adapters log their failures; keep test output clean and let tests assert on it.
@@ -215,7 +218,7 @@ test("parallel submissions from one IP send only one message", async () => {
   expect(mailer.sent).toHaveLength(1);
 });
 
-test("when the first of two parallel submissions fails, the IP can send again", async () => {
+test("when the first of two parallel submissions fails, the next one from that IP reaches the mailer", async () => {
   const mailer = gatedMailer();
   const contact = intake({ mailer });
   const first = contact.submit(post(valid, "2.2.2.2"));
@@ -234,6 +237,29 @@ test("a mailer that throws does not lock the IP", async () => {
   expect((await contact.submit(post(valid, "2.2.2.2"))).status).toBe(200);
 });
 
+async function waitFor(condition) {
+  while (!condition()) await Bun.sleep(1);
+}
+
+test("a send that hangs past the window and then fails does not free a newer request's slot", async () => {
+  let t = 0;
+  const pending = {}; // replyTo -> resolve the send to an outcome
+  const mailer = { send: (email) => new Promise((resolve) => { pending[email.replyTo] = resolve; }) };
+  const contact = intake({ mailer, now: () => t });
+
+  const first = contact.submit(post({ ...valid, email: "one@example.com" }, "2.2.2.2"));
+  await waitFor(() => pending["one@example.com"]);
+  t = 60_000; // the first send is still hanging when its reservation expires
+  const second = contact.submit(post({ ...valid, email: "two@example.com" }, "2.2.2.2"));
+  await waitFor(() => pending["two@example.com"]);
+
+  pending["one@example.com"]("rejected");
+  expect((await first).status).toBe(502);
+  expect(await contact.submit(post(valid, "2.2.2.2"))).toEqual(TOO_SOON);
+  pending["two@example.com"]("sent");
+  expect((await second).status).toBe(200);
+});
+
 test("each contact intake keeps its own rate-limit state", async () => {
   await intake().submit(post(valid, "9.9.9.9"));
   expect((await intake().submit(post(valid, "9.9.9.9"))).status).toBe(200);
@@ -247,7 +273,7 @@ test("Turnstile posts the siteverify form and passes on success", async () => {
   expect(await check.verify({ token: "tok", ip: "4.4.4.4" })).toBe("passed");
   expect(http.calls).toHaveLength(1);
   const [{ url, init }] = http.calls;
-  expect(url).toBe("https://challenges.cloudflare.com/turnstile/v0/siteverify");
+  expect(url).toBe(SITEVERIFY);
   expect(init.method).toBe("POST");
   expect(init.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
   expect(Object.fromEntries(new URLSearchParams(init.body))).toEqual({ secret: "s3cret", response: "tok", remoteip: "4.4.4.4" });
@@ -286,7 +312,7 @@ test("Resend posts the e-mail as JSON with the API key", async () => {
   expect(await mailer.send(email)).toBe("sent");
   expect(http.calls).toHaveLength(1);
   const [{ url, init }] = http.calls;
-  expect(url).toBe("https://api.resend.com/emails");
+  expect(url).toBe(RESEND);
   expect(init.method).toBe("POST");
   expect(init.headers).toEqual({ Authorization: "Bearer re_key", "Content-Type": "application/json" });
   expect(JSON.parse(init.body)).toEqual({ from: "F <f@x.bzh>", to: ["t@x.bzh"], reply_to: "r@x.bzh", subject: "S", text: "T" });
@@ -308,8 +334,6 @@ test("Resend reports a network failure as unreachable", async () => {
 
 // ── Composition from the environment ──────────────────────────────────────────
 
-const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-const RESEND = "https://api.resend.com/emails";
 // One answer that satisfies both Turnstile (success) and Resend (2xx).
 const allGood = () => Response.json({ success: true });
 

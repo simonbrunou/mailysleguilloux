@@ -30,9 +30,9 @@ const FIELDS = ["name", "email", "subject", "message", "cf-turnstile-response"];
 
 // Returns the submitted fields as strings ("" when absent or null), or null when
 // the body isn't a JSON object of strings.
-async function readFields(request) {
+async function readFields(req) {
   let body;
-  try { body = await request.json(); } catch { return null; }
+  try { body = await req.json(); } catch { return null; }
   if (body === null || typeof body !== "object" || Array.isArray(body)) return null;
   const fields = {};
   for (const key of FIELDS) {
@@ -78,36 +78,39 @@ function composeEmail({ name, email, subject, message }, sentAt) {
 
 // Behind the Cloudflare Tunnel, cf-connecting-ip is always set; the fallbacks
 // are only for local/health-check requests.
-function clientIp(request) {
-  return request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
+function clientIp(req) {
+  return req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "unknown";
 }
 
 export function createContactIntake({ humanCheck, mailer, now = Date.now }) {
-  // ip -> epoch ms of the last sent message, or of the start of one in flight
+  // ip -> { at }: when the IP's last message was sent, or when the one in flight
+  // started. Object identity tells a request whether the slot is still its own.
   const slots = new Map();
 
-  async function submit(request) {
-    const ip = clientIp(request);
-    for (const [key, t] of slots) if (now() - t >= RATE_WINDOW_MS) slots.delete(key);
+  async function submit(req) {
+    const ip = clientIp(req);
+    for (const [key, slot] of slots) if (now() - slot.at >= RATE_WINDOW_MS) slots.delete(key);
     if (slots.has(ip)) {
       return reply(429, "Veuillez patienter 60 secondes avant de renvoyer un message.");
     }
 
     // Reserve the slot before the first await so parallel requests from one IP
-    // can't all pass; only a sent message keeps it.
-    slots.set(ip, now());
+    // can't all pass; only a sent message keeps it. A request whose reservation
+    // expired and was taken over must not release the newer one.
+    const slot = { at: now() };
+    slots.set(ip, slot);
     let result;
     try {
-      result = await deliver(request, ip);
+      result = await checkAndSend(req, ip);
       return result;
     } finally {
-      if (result?.status === 200) slots.set(ip, now());
-      else slots.delete(ip);
+      if (result?.status === 200) slots.set(ip, { at: now() });
+      else if (slots.get(ip) === slot) slots.delete(ip);
     }
   }
 
-  async function deliver(request, ip) {
-    const fields = await readFields(request);
+  async function checkAndSend(req, ip) {
+    const fields = await readFields(req);
     if (!fields) return reply(400, "Corps de requête invalide.");
     const invalid = validationError(fields);
     if (invalid) return reply(400, invalid);
@@ -123,10 +126,8 @@ export function createContactIntake({ humanCheck, mailer, now = Date.now }) {
   return { submit };
 }
 
-// ── Human-check adapters: verify({ token, ip }) resolves to "passed",
-// "missing", "failed" or "unavailable". ──────────────────────────────────────
-
-// Fail-open stand-in, composed when TURNSTILE_SECRET_KEY is unset.
+// Human-check adapters: verify({ token, ip }) resolves to "passed", "missing",
+// "failed" or "unavailable". This one is composed when TURNSTILE_SECRET_KEY is unset.
 export const alwaysPassHumanCheck = { verify: async () => "passed" };
 
 export function turnstileHumanCheck({ secret, fetch }) {
@@ -149,11 +150,10 @@ export function turnstileHumanCheck({ secret, fetch }) {
   };
 }
 
-// ── Mailer adapters: send({ from, to, replyTo, subject, text }) resolves to
-// "sent", "unconfigured", "unreachable" or "rejected". ───────────────────────
-
-// Composed when RESEND_API_KEY is unset: every submission gets a 503.
-export const unconfiguredMailer = {
+// Mailer adapters: send({ from, to, replyTo, subject, text }) resolves to "sent",
+// "unconfigured", "unreachable" or "rejected". This one is composed when
+// RESEND_API_KEY is unset.
+const unconfiguredMailer = {
   async send() {
     console.error("RESEND_API_KEY not configured");
     return "unconfigured";
@@ -175,7 +175,7 @@ export function resendMailer({ apiKey, fetch }) {
         return "unreachable";
       }
       if (!res.ok) {
-        console.error("Resend API error:", res.status, await res.text());
+        console.error("Resend API error:", res.status, await res.text().catch(() => ""));
         return "rejected";
       }
       return "sent";
@@ -183,9 +183,7 @@ export function resendMailer({ apiKey, fetch }) {
   };
 }
 
-// ── Composition ───────────────────────────────────────────────────────────────
-
-// Reads the secrets once. Turnstile fails open (always-pass adapter) when
+// Composition: reads the secrets once. Turnstile fails open (always-pass adapter) when
 // TURNSTILE_SECRET_KEY is unset and enforces when it's set; a missing
 // RESEND_API_KEY makes every submission a 503.
 export function contactIntakeFromEnv(env, fetch = globalThis.fetch) {

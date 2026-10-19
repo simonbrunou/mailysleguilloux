@@ -26,7 +26,8 @@ security headers.
   `index.html` actually inlines/loads — `unsafe-inline` for inline `<style>/<script>/onerror`,
   `fonts.googleapis.com` + `fonts.gstatic.com`, `static.cloudflareinsights.com` (optional
   beacon), and `challenges.cloudflare.com` (Turnstile script-src + frame-src).
-- `RESEND_API_KEY` / `TURNSTILE_SECRET_KEY` are required at runtime via env, never committed.
+- `RESEND_API_KEY` / `TURNSTILE_SECRET_KEY` come from env at runtime (production sets both),
+  never committed.
 
 ## Landmines
 - `site/_headers` is a **LEGACY** Cloudflare static-assets file. It is NOT used by the Bun
