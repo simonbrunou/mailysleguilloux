@@ -7,7 +7,7 @@
       pkgs = import nixpkgs { inherit system; };
     in {
       devShells.x86_64-linux.default = pkgs.mkShell {
-        packages = with pkgs; [ nodejs_24 ];
+        packages = with pkgs; [ bun nodejs_24 ];
       };
     };
 }
