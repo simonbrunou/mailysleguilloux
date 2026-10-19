@@ -1,5 +1,11 @@
 // server.js
-import { join, normalize } from "path";
+//
+// Header policy: turns a request into a response and gives every response the
+// security headers and the CSP, whatever produced its body: a file from site/, a
+// contact intake reply, or a 400/404/405. Cache-Control and the homepage's preload
+// Link are keyed on the file actually served. This is the only place header rules
+// live; server.test.js checks the CSP against what site/index.html loads.
+import { join } from "path";
 import { contactIntakeFromEnv } from "./contact-intake.js";
 const SITE_DIR = join(import.meta.dir, "site");
 
@@ -7,10 +13,10 @@ const IMMUTABLE = new Set(["css","js","woff","woff2","webp","jpg","jpeg","png","
 
 // 'unsafe-inline' is required by the static page's inline <style>, inline <script>,
 // and inline event handlers (onerror on <img>). External origins are limited to
-// Google Fonts, the optional Cloudflare Insights beacon (currently commented out
-// in index.html, pre-allowed so enabling it needs no CSP change), and Cloudflare
-// Turnstile (challenges.cloudflare.com) for the contact-form anti-bot widget
-// (its api.js in script-src, its widget iframe in frame-src).
+// Google Fonts, the Cloudflare Insights beacon (its script in script-src, its
+// reports in connect-src), and Cloudflare Turnstile (challenges.cloudflare.com) for
+// the contact-form anti-bot widget (its api.js in script-src, its widget iframe in
+// frame-src).
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -33,92 +39,80 @@ const SECURITY = {
   "Content-Security-Policy": CSP,
 };
 
-// Note: applying HOME_LINK preloads to both "/" and "/index.html" is an intentional,
-// harmless divergence from the static _headers file (which only set them on "/").
+// Sent with index.html whichever URL served it: "/", "/index.html" or "/index".
 const HOME_LINK =
   "</images/mailys.webp>; rel=preload; as=image; type=image/webp, " +
   "<https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Raleway:wght@300;400;500&display=swap>; rel=preload; as=style";
 
-export function headersFor(pathname) {
-  const h = { ...SECURITY };
-  const ext = pathname.split(".").pop().toLowerCase();
-
-  if (pathname === "/" || pathname === "/index.html") {
-    h["Cache-Control"] = "public, max-age=3600, must-revalidate";
-    h["Link"] = HOME_LINK;
-  } else if (pathname === "/sitemap.xml" || pathname === "/robots.txt") {
-    h["Cache-Control"] = "public, max-age=86400, must-revalidate";
-  } else if (IMMUTABLE.has(ext)) {
-    h["Cache-Control"] = "public, max-age=31536000, immutable";
-  }
-  return h;
+// Cache-Control (and the homepage's preload Link) for a file served from site/,
+// named by its path inside site/.
+function cacheHeaders(file) {
+  if (file === "index.html") return { "Cache-Control": "public, max-age=3600, must-revalidate", "Link": HOME_LINK };
+  if (file === "sitemap.xml" || file === "robots.txt") return { "Cache-Control": "public, max-age=86400, must-revalidate" };
+  if (IMMUTABLE.has(file.split(".").pop().toLowerCase())) return { "Cache-Control": "public, max-age=31536000, immutable" };
+  return {};
 }
 
+const TEXT = { "Content-Type": "text/plain; charset=utf-8" };
+
 function notFound() {
-  return new Response(Bun.file(join(SITE_DIR, "404.html")), {
+  return {
     status: 404,
-    headers: { ...SECURITY, "Content-Type": "text/html; charset=utf-8" },
-  });
+    body: Bun.file(join(SITE_DIR, "404.html")),
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  };
 }
 
 async function serveStatic(pathname) {
   if (pathname.endsWith("/")) pathname += "index.html";
-  // strip leading slashes, normalize, block traversal
-  const rel = normalize(pathname).replace(/^([/\\]|\.\.([/\\]|$))+/, "");
-  const filePath = join(SITE_DIR, rel);
-  if (!filePath.startsWith(SITE_DIR + "/") && filePath !== SITE_DIR) return notFound();
+  // join() resolves "..", so a decoded "%2f.." can climb out of site/: refuse it
+  const filePath = join(SITE_DIR, pathname);
+  if (!filePath.startsWith(SITE_DIR + "/")) return notFound();
 
-  let file = Bun.file(filePath);
-  if (!(await file.exists())) {
-    const html = Bun.file(filePath + ".html"); // html_handling: auto-trailing-slash
-    if (await html.exists()) file = html;
-    else return notFound();
+  // "/about" also finds about.html, as Cloudflare's auto-trailing-slash did
+  for (const candidate of [filePath, filePath + ".html"]) {
+    const file = Bun.file(candidate);
+    if (!(await file.exists())) continue;
+    const served = candidate.slice(SITE_DIR.length + 1);
+    if (served === "404.html") return notFound(); // no soft 404 at /404
+    return { status: 200, body: file, headers: cacheHeaders(served) };
   }
-  return new Response(file, { headers: headersFor("/" + rel) });
+  return notFound();
 }
 
-const ALLOW_ORIGIN = "https://mailysleguilloux.bzh";
-
-function json(data, status) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": ALLOW_ORIGIN },
-  });
+// Returns the decoded path, or null when the URL can't name a file: a malformed
+// percent-encoding, or a NUL byte (Bun.file throws on one).
+function pathOf(request) {
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(request.url).pathname);
+  } catch {
+    return null;
+  }
+  return pathname.includes("\0") ? null : pathname;
 }
 
-function preflight() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": ALLOW_ORIGIN,
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Max-Age": "86400",
-    },
-  });
+// Every branch returns plain { status, body, headers }; fetchHandler alone builds
+// the Response, so no reply can leave without the security headers.
+async function route(request, contactIntake) {
+  const pathname = pathOf(request);
+  if (pathname === null) return { status: 400, body: "Bad Request", headers: TEXT };
+  if (pathname === "/contact") {
+    if (request.method !== "POST") {
+      return { status: 405, body: "Method Not Allowed", headers: { ...TEXT, "Allow": "POST" } };
+    }
+    const { status, body } = await contactIntake.submit(request);
+    return { status, body: JSON.stringify(body), headers: { "Content-Type": "application/json" } };
+  }
+  return serveStatic(pathname);
 }
 
 // contactIntake: built once at startup by contactIntakeFromEnv (see contact-intake.js);
-// it returns plain { status, body } replies that are turned into JSON responses here.
+// its plain { status, body } replies become JSON responses in route().
 export function createFetchHandler({ contactIntake }) {
-  return async function fetchHandler(req) {
-    const url = new URL(req.url);
-    const pathname = decodeURIComponent(url.pathname);
-    if (pathname === "/contact") {
-      if (req.method === "OPTIONS") return preflight();
-      if (req.method === "POST") {
-        const { status, body } = await contactIntake.submit(req);
-        return json(body, status);
-      }
-      return new Response("Method Not Allowed", {
-        status: 405,
-        headers: {
-          "Allow": "POST, OPTIONS",
-          "Access-Control-Allow-Origin": ALLOW_ORIGIN,
-        },
-      });
-    }
-    return serveStatic(pathname);
+  return async function fetchHandler(request) {
+    const { status, body, headers } = await route(request, contactIntake);
+    return new Response(body, { status, headers: { ...headers, ...SECURITY } });
   };
 }
 
