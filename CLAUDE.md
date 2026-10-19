@@ -5,7 +5,7 @@ practitioner (kinésiologue/guérisseuse) near Vannes, Morbihan. **Local SEO is 
 site's primary purpose.**
 
 ## Stack & run
-- **Bun** only. `bun server.js` (start) · `bun test` (runs server.test.js + contact-intake.test.js).
+- **Bun** only. `bun server.js` (start) · `bun test` (runs every `*.test.js`).
 - No framework, no build step, no bundler. `site/index.html` is hand-authored with
   inlined `<style>` and `<script>`. Edit it directly.
 - Self-hosted on **Coolify behind a Cloudflare Tunnel**. Recently migrated OFF
@@ -43,11 +43,13 @@ file actually served.
   (through a `fetch` passed into each adapter). Changing a constant in either module breaks
   tests; update both together. (A PostToolUse hook reminds you.) Tests build fresh contact
   intakes with fake adapters; keep `process.env` and `globalThis.fetch` out of them.
-- **Business facts are duplicated** across visible HTML, meta tags, 5 JSON-LD blocks, and
-  sitemap.xml: phone `+33650912604`, `18 rue de Plaisance` / `56890 Saint-Avé`, geo
-  `47.6869`/`-2.7356`, price. Change ALL occurrences together — the FAQ JSON-LD must mirror
-  the visible FAQ, and `review[]` / `ratingCount` must mirror the visible testimonials. Use
-  the `seo-structured-data-reviewer` agent after editing `index.html`.
+- **Business facts are duplicated** across visible HTML, meta tags, 5 JSON-LD blocks,
+  sitemap.xml and robots.txt (phone, email, address, geo, price, FAQ, testimonials, site URL,
+  image sizes). `business-facts.test.js` is the guard: `bun test` fails when two copies
+  disagree, so change every copy together. Facts that only the JSON-LD states sit on its
+  `JSON_LD_ONLY` allowlist until the owner confirms them; don't add to it. Bump the sitemap
+  `lastmod` in any commit that changes `index.html`. Still run the
+  `seo-structured-data-reviewer` agent after editing `index.html`.
 - Images live in `site/images/` and are **committed** to the repo (jpg + webp pairs).
 
 ## Agent skills
