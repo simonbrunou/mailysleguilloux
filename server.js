@@ -1,5 +1,6 @@
 // server.js
 import { join, normalize } from "path";
+import { contactIntakeFromEnv } from "./contact-intake.js";
 const SITE_DIR = join(import.meta.dir, "site");
 
 const IMMUTABLE = new Set(["css","js","woff","woff2","webp","jpg","jpeg","png","svg","ico","avif"]);
@@ -76,19 +77,7 @@ async function serveStatic(pathname) {
   return new Response(file, { headers: headersFor("/" + rel) });
 }
 
-const TO_EMAIL = "contact@mailysleguilloux.bzh";
-const FROM_EMAIL = "Formulaire de contact <noreply@mailysleguilloux.bzh>";
 const ALLOW_ORIGIN = "https://mailysleguilloux.bzh";
-const RATE_WINDOW_MS = 60_000;
-
-const lastSeen = new Map(); // ip -> epoch ms of last successful send
-export function __resetRateLimit() { lastSeen.clear(); }
-
-// periodic eviction so the Map can't grow unbounded
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, ts] of lastSeen) if (now - ts > RATE_WINDOW_MS) lastSeen.delete(ip);
-}, RATE_WINDOW_MS).unref?.();
 
 function json(data, status) {
   return new Response(JSON.stringify(data), {
@@ -109,114 +98,33 @@ function preflight() {
   });
 }
 
-async function handleContact(req) {
-  // Behind the Cloudflare Tunnel, cf-connecting-ip is always set; the fallbacks
-  // are only for local/health-check requests.
-  const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "unknown";
-  const prev = lastSeen.get(ip);
-  if (prev && Date.now() - prev < RATE_WINDOW_MS) {
-    return json({ ok: false, message: "Veuillez patienter 60 secondes avant de renvoyer un message." }, 429);
-  }
-
-  let body;
-  try { body = await req.json(); }
-  catch { return json({ ok: false, message: "Corps de requête invalide." }, 400); }
-
-  const { name, email, subject, message } = body;
-  if (!name || !email || !message) {
-    return json({ ok: false, message: "Veuillez remplir les champs obligatoires (nom, e-mail, message)." }, 400);
-  }
-
-  if (name.length > 200 || email.length > 254 || message.length > 5000 || (subject && subject.length > 300)) {
-    return json({ ok: false, message: "Un ou plusieurs champs dépassent la longueur maximale autorisée." }, 400);
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json({ ok: false, message: "Adresse e-mail invalide." }, 400);
-  }
-
-  // Cloudflare Turnstile anti-bot check. Fail-open if the secret isn't configured
-  // (matches the RESEND_API_KEY graceful pattern); enforce when it IS set.
-  if (process.env.TURNSTILE_SECRET_KEY) {
-    const token = body["cf-turnstile-response"];
-    if (!token) {
-      return json({ ok: false, message: "Validation anti-robot manquante. Veuillez cocher la case." }, 400);
-    }
-    try {
-      const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ secret: process.env.TURNSTILE_SECRET_KEY, response: token, remoteip: ip }),
-      });
-      const outcome = await verify.json();
-      if (!outcome.success) {
-        return json({ ok: false, message: "Échec de la validation anti-robot. Veuillez réessayer." }, 400);
+// contactIntake: built once at startup by contactIntakeFromEnv (see contact-intake.js);
+// it returns plain { status, body } replies that are turned into JSON responses here.
+export function createFetchHandler({ contactIntake }) {
+  return async function fetchHandler(req) {
+    const url = new URL(req.url);
+    const pathname = decodeURIComponent(url.pathname);
+    if (pathname === "/contact") {
+      if (req.method === "OPTIONS") return preflight();
+      if (req.method === "POST") {
+        const { status, body } = await contactIntake.submit(req);
+        return json(body, status);
       }
-    } catch (err) {
-      console.error("Turnstile verify error:", err);
-      return json({ ok: false, message: "Erreur lors de la validation anti-robot." }, 502);
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: {
+          "Allow": "POST, OPTIONS",
+          "Access-Control-Allow-Origin": ALLOW_ORIGIN,
+        },
+      });
     }
-  }
-
-  if (!process.env.RESEND_API_KEY) {
-    console.error("RESEND_API_KEY not configured");
-    return json({ ok: false, message: "Service de messagerie non configuré." }, 503);
-  }
-
-  const emailSubject = subject ? `[Contact] ${subject}` : `[Contact] Message de ${name}`;
-  const emailBody = [
-    "Nouveau message reçu depuis le formulaire de contact de mailysleguilloux.bzh",
-    "",
-    `Nom    : ${name}`,
-    `E-mail : ${email}`,
-    subject ? `Objet  : ${subject}` : null,
-    "",
-    "--- Message ---",
-    message,
-    "",
-    "--- Fin du message ---",
-    `Envoyé le : ${new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}`,
-  ].filter((l) => l !== null).join("\n");
-
-  let resendRes;
-  try {
-    resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: FROM_EMAIL, to: [TO_EMAIL], reply_to: email, subject: emailSubject, text: emailBody }),
-    });
-  } catch (err) {
-    console.error("Resend fetch error:", err);
-    return json({ ok: false, message: "Erreur réseau lors de l'envoi." }, 502);
-  }
-  if (!resendRes.ok) {
-    console.error("Resend API error:", resendRes.status, await resendRes.text());
-    return json({ ok: false, message: "Erreur lors de l'envoi de l'e-mail." }, 502);
-  }
-
-  lastSeen.set(ip, Date.now()); // only consume budget on success
-  return json({ ok: true, message: "Message envoyé avec succès." }, 200);
-}
-
-export async function fetchHandler(req) {
-  const url = new URL(req.url);
-  const pathname = decodeURIComponent(url.pathname);
-  if (pathname === "/contact") {
-    if (req.method === "OPTIONS") return preflight();
-    if (req.method === "POST") return handleContact(req);
-    return new Response("Method Not Allowed", {
-      status: 405,
-      headers: {
-        "Allow": "POST, OPTIONS",
-        "Access-Control-Allow-Origin": ALLOW_ORIGIN,
-      },
-    });
-  }
-  return serveStatic(pathname);
+    return serveStatic(pathname);
+  };
 }
 
 if (import.meta.main) {
   const port = Number(process.env.PORT) || 3000;
-  Bun.serve({ port, fetch: fetchHandler });
+  const contactIntake = contactIntakeFromEnv(process.env);
+  Bun.serve({ port, fetch: createFetchHandler({ contactIntake }) });
   console.log(`mailysleguilloux listening on :${port}`);
 }
