@@ -16,11 +16,24 @@ function silence(method) {
   return spyOn(console, method).mockImplementation(() => {});
 }
 
-// A fetch stand-in that records each call and answers with a fresh Response.
+// A fetch stand-in that records each call and answers with a fresh Response,
+// unless the request's signal has already aborted: then it rejects, as fetch does.
 function recordingFetch(respond = () => new Response("{}")) {
   const calls = [];
-  const fetch = async (url, init) => { calls.push({ url, init }); return respond(); };
+  const fetch = async (url, init) => {
+    calls.push({ url, init });
+    init?.signal?.throwIfAborted();
+    return respond();
+  };
   return { calls, fetch };
+}
+
+// A fetch stand-in that never answers: it settles only when the request's signal
+// aborts, rejecting with the abort reason as fetch does.
+function hangingFetch() {
+  return (_, init) => new Promise((_, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(init.signal.reason));
+  });
 }
 
 function fakeMailer(outcome = "sent") {
@@ -268,6 +281,7 @@ test("each contact intake keeps its own rate-limit state", async () => {
 // ── Turnstile human-check adapter ─────────────────────────────────────────────
 
 test("Turnstile posts the siteverify form and passes on success", async () => {
+  const timeout = spyOn(AbortSignal, "timeout");
   const http = recordingFetch(() => Response.json({ success: true }));
   const check = turnstileHumanCheck({ secret: "s3cret", fetch: http.fetch });
   expect(await check.verify({ token: "tok", ip: "4.4.4.4" })).toBe("passed");
@@ -277,6 +291,8 @@ test("Turnstile posts the siteverify form and passes on success", async () => {
   expect(init.method).toBe("POST");
   expect(init.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
   expect(Object.fromEntries(new URLSearchParams(init.body))).toEqual({ secret: "s3cret", response: "tok", remoteip: "4.4.4.4" });
+  expect(init.signal).toBeInstanceOf(AbortSignal);
+  expect(timeout).toHaveBeenCalledWith(10_000);
 });
 
 test("Turnstile fails when siteverify says so", async () => {
@@ -302,11 +318,26 @@ test.each([
   expect(logged).toHaveBeenCalledTimes(1);
 });
 
+test("Turnstile is unavailable when siteverify does not answer in time", async () => {
+  const logged = silence("error");
+  const check = turnstileHumanCheck({ secret: "s", fetch: hangingFetch(), timeoutMs: 5 });
+  expect(await check.verify({ token: "tok", ip: "4.4.4.4" })).toBe("unavailable");
+  expect(logged).toHaveBeenCalledTimes(1);
+});
+
+test("Turnstile times each check from its own start", async () => {
+  const http = recordingFetch(() => Response.json({ success: true }));
+  const check = turnstileHumanCheck({ secret: "s", fetch: http.fetch, timeoutMs: 5 });
+  await Bun.sleep(10);
+  expect(await check.verify({ token: "tok", ip: "4.4.4.4" })).toBe("passed");
+});
+
 // ── Resend mailer adapter ─────────────────────────────────────────────────────
 
 const email = { from: "F <f@x.bzh>", to: "t@x.bzh", replyTo: "r@x.bzh", subject: "S", text: "T" };
 
 test("Resend posts the e-mail as JSON with the API key", async () => {
+  const timeout = spyOn(AbortSignal, "timeout");
   const http = recordingFetch(() => Response.json({ id: "1" }));
   const mailer = resendMailer({ apiKey: "re_key", fetch: http.fetch });
   expect(await mailer.send(email)).toBe("sent");
@@ -316,6 +347,8 @@ test("Resend posts the e-mail as JSON with the API key", async () => {
   expect(init.method).toBe("POST");
   expect(init.headers).toEqual({ Authorization: "Bearer re_key", "Content-Type": "application/json" });
   expect(JSON.parse(init.body)).toEqual({ from: "F <f@x.bzh>", to: ["t@x.bzh"], reply_to: "r@x.bzh", subject: "S", text: "T" });
+  expect(init.signal).toBeInstanceOf(AbortSignal);
+  expect(timeout).toHaveBeenCalledWith(10_000);
 });
 
 test("Resend reports a refused e-mail as rejected", async () => {
@@ -330,6 +363,20 @@ test("Resend reports a network failure as unreachable", async () => {
   const mailer = resendMailer({ apiKey: "k", fetch: recordingFetch(() => { throw new TypeError("network down"); }).fetch });
   expect(await mailer.send(email)).toBe("unreachable");
   expect(logged).toHaveBeenCalledTimes(1);
+});
+
+test("Resend reports a timeout as unreachable", async () => {
+  const logged = silence("error");
+  const mailer = resendMailer({ apiKey: "k", fetch: hangingFetch(), timeoutMs: 5 });
+  expect(await mailer.send(email)).toBe("unreachable");
+  expect(logged).toHaveBeenCalledTimes(1);
+});
+
+test("Resend times each send from its own start", async () => {
+  const http = recordingFetch(() => Response.json({ id: "1" }));
+  const mailer = resendMailer({ apiKey: "k", fetch: http.fetch, timeoutMs: 5 });
+  await Bun.sleep(10);
+  expect(await mailer.send(email)).toBe("sent");
 });
 
 // ── Composition from the environment ──────────────────────────────────────────

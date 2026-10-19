@@ -4,12 +4,16 @@
 // { status, body: { ok, message } } and, when the submission is accepted, an
 // e-mail to Maïlys. It owns validation, the per-IP rate limit, the e-mail text and
 // every message the visitor sees. Turnstile and Resend sit behind two injected
-// adapters (human check, mailer) and time behind an injected clock, so each
-// instance is self-contained: build one at startup, or a fresh one per test.
+// adapters (human check, mailer), each with its own fetch timeout, and the rate
+// limit's time behind an injected clock, so each instance is self-contained:
+// build one at startup, or a fresh one per test.
 
 const TO_EMAIL = "contact@mailysleguilloux.bzh";
 const FROM_EMAIL = "Formulaire de contact <noreply@mailysleguilloux.bzh>";
 const RATE_WINDOW_MS = 60_000;
+// How long each adapter waits for Turnstile or Resend before giving up. Both
+// together stay well inside the rate-limit window.
+const HTTP_TIMEOUT_MS = 10_000;
 
 function reply(status, message) {
   return { status, body: { ok: status === 200, message } };
@@ -130,7 +134,7 @@ export function createContactIntake({ humanCheck, mailer, now = Date.now }) {
 // "failed" or "unavailable". This one is composed when TURNSTILE_SECRET_KEY is unset.
 export const alwaysPassHumanCheck = { verify: async () => "passed" };
 
-export function turnstileHumanCheck({ secret, fetch }) {
+export function turnstileHumanCheck({ secret, fetch, timeoutMs = HTTP_TIMEOUT_MS }) {
   return {
     async verify({ token, ip }) {
       if (!token) return "missing";
@@ -139,6 +143,7 @@ export function turnstileHumanCheck({ secret, fetch }) {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ secret, response: token, remoteip: ip }),
+          signal: AbortSignal.timeout(timeoutMs),
         });
         const outcome = await res.json();
         return outcome.success ? "passed" : "failed";
@@ -160,7 +165,7 @@ const unconfiguredMailer = {
   },
 };
 
-export function resendMailer({ apiKey, fetch }) {
+export function resendMailer({ apiKey, fetch, timeoutMs = HTTP_TIMEOUT_MS }) {
   return {
     async send({ from, to, replyTo, subject, text }) {
       let res;
@@ -169,6 +174,7 @@ export function resendMailer({ apiKey, fetch }) {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({ from, to: [to], reply_to: replyTo, subject, text }),
+          signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (err) {
         console.error("Resend fetch error:", err);

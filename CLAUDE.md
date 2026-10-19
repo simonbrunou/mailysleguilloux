@@ -23,7 +23,8 @@ file actually served.
   sent), the e-mail text, and every French reply. `submit(request)` returns plain
   `{ status, body }`; `server.js` turns it into the JSON response. Turnstile and Resend sit
   behind injected adapters (human check, mailer) that `contactIntakeFromEnv` composes once at
-  startup: Turnstile **fails open** (always-pass adapter + one startup warning) when
+  startup. The Turnstile and Resend adapters give up after 10 s (`timeoutMs`); the visitor gets a 502.
+  Turnstile **fails open** (always-pass adapter + one startup warning) when
   `TURNSTILE_SECRET_KEY` is unset and enforces when it's set; an unset `RESEND_API_KEY` makes
   every submission a 503. Real client IP comes from `cf-connecting-ip`.
 - **CSP** (`Content-Security-Policy` in the `SECURITY` headers): `unsafe-inline` covers the
