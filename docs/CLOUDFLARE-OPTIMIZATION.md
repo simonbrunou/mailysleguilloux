@@ -8,8 +8,8 @@ All JPEG images have been converted to WebP format with automatic fallback:
 - Browsers that don't support WebP (very rare) fall back to JPEG
 - Hero image uses `fetchpriority="high"` for faster LCP
 
-### 2. `_headers` File (Cloudflare Pages)
-Custom headers configured for:
+### 2. Response headers (`server.js`)
+The Bun server sets every response header; `server.js` is the only place the header policy lives:
 - **Immutable caching** on images (`max-age=1yr, immutable`)
 - **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `Permissions-Policy`, etc.
 - **Early Hints** via `Link` headers — Cloudflare sends 103 responses to preload the hero image and fonts before the HTML is fully parsed
@@ -33,7 +33,7 @@ These settings should be toggled in the Cloudflare dashboard for maximum perform
 | Setting | Recommended | Why |
 |---------|-------------|-----|
 | **Auto Minify** (HTML, CSS, JS) | ON | Reduces file sizes on the edge |
-| **Early Hints** | ON | Sends 103 responses using the `Link` headers from `_headers` |
+| **Early Hints** | ON | Sends 103 responses using the `Link` headers from `server.js` |
 | **HTTP/2** | ON (default) | Multiplexed connections |
 | **HTTP/3 (QUIC)** | ON | Faster connections, especially on mobile |
 | **Brotli compression** | ON | Better compression than gzip (~15-20% smaller) |
@@ -43,8 +43,8 @@ These settings should be toggled in the Cloudflare dashboard for maximum perform
 
 | Setting | Recommended | Why |
 |---------|-------------|-----|
-| **Caching Level** | Standard | Works with `_headers` Cache-Control |
-| **Browser Cache TTL** | Respect Existing Headers | Let `_headers` file control caching |
+| **Caching Level** | Standard | Works with the Cache-Control `server.js` sets |
+| **Browser Cache TTL** | Respect Existing Headers | Let `server.js` control caching |
 | **Always Online** | ON | Shows cached version if origin is down |
 | **Tiered Cache** | ON | Reduces origin requests using upper-tier PoPs |
 
