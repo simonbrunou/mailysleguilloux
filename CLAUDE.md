@@ -12,8 +12,12 @@ site's primary purpose.**
   Cloudflare Workers/R2 — do NOT reintroduce Workers/wrangler/R2 assumptions.
 
 ## server.js + contact-intake.js (the only dynamic code)
-`server.js` serves `site/` statically, routes `POST /contact` to the contact intake, and sets
-security headers.
+`server.js` is the **header policy** module and the only place the header policy lives. It serves
+`site/`, routes `POST /contact` to the contact intake, and gives every response (file, contact
+reply, 400/404/405) the security headers and CSP. Every branch of `route()` returns plain
+`{ status, body, headers }` and only `fetchHandler` builds the `Response`; add new branches the
+same way so none can skip the policy. Cache-Control and the homepage `Link` are keyed on the
+file actually served.
 - **Contact intake** (`contact-intake.js`): validation, per-IP in-memory rate limit (60s
   window; the slot is reserved while a request is in flight and kept only if the e-mail is
   sent), the e-mail text, and every French reply. `submit(request)` returns plain
@@ -23,19 +27,18 @@ security headers.
   Turnstile **fails open** (always-pass adapter + one startup warning) when
   `TURNSTILE_SECRET_KEY` is unset and enforces when it's set; an unset `RESEND_API_KEY` makes
   every submission a 503. Real client IP comes from `cf-connecting-ip`.
-- **CSP** (`Content-Security-Policy` in the `SECURITY` headers): must stay in sync with what
-  `index.html` actually inlines/loads — `unsafe-inline` for inline `<style>/<script>/onerror`,
-  `fonts.googleapis.com` + `fonts.gstatic.com`, `static.cloudflareinsights.com` (optional
-  beacon), and `challenges.cloudflare.com` (Turnstile script-src + frame-src).
+- **CSP** (`Content-Security-Policy` in the `SECURITY` headers): `unsafe-inline` covers the
+  inline `<style>/<script>/onerror` in `index.html`. A test in `server.test.js` reads
+  `index.html` and fails when the CSP blocks an origin it loads. Origins a third-party script
+  loads in turn (Google Fonts files, the Turnstile iframe, beacon reports) are listed in that
+  test's `FOLLOW_ON_LOADS`; add an entry when a new script loads more.
 - `RESEND_API_KEY` / `TURNSTILE_SECRET_KEY` come from env at runtime (production sets both),
   never committed.
 
 ## Landmines
-- `site/_headers` is a **LEGACY** Cloudflare static-assets file. It is NOT used by the Bun
-  server and duplicates the header logic in server.js. Treat it as dead, or keep both in sync
-  if you touch headers.
-- Tests (`bun:test`) assert **EXACT** strings. `server.test.js`: CSP directives and
-  Cache-Control max-age values. `contact-intake.test.js`: the French replies, the 60000ms
+- Tests (`bun:test`) assert **EXACT** strings. `server.test.js`, all through
+  `createFetchHandler`: the full CSP string, the security headers and Cache-Control max-age
+  values. `contact-intake.test.js`: the French replies, the 60000ms
   window (through an injected clock), the Turnstile siteverify form and the Resend JSON
   (through a `fetch` passed into each adapter). Changing a constant in either module breaks
   tests; update both together. (A PostToolUse hook reminds you.) Tests build fresh contact
