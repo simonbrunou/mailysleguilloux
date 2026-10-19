@@ -14,6 +14,7 @@ Hosted on **Cloudflare Pages** with auto-deploy from GitHub.
 ### Files
 
 ```
+server.js                 # Bun server: serves site/, POST /contact, sets every response header
 site/                     # Website files (Pages build output)
   index.html
   sitemap.xml
