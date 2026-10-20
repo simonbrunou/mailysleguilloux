@@ -48,14 +48,43 @@ file actually served.
   sitemap.xml and robots.txt (phone, email, address, geo, price, FAQ, testimonials, site URL,
   image sizes). `business-facts.test.js` is the guard: `bun test` fails when two copies
   disagree, so change every copy together. Facts that only the JSON-LD states sit on its
-  `JSON_LD_ONLY` allowlist until the owner confirms them; don't add to it. Bump the sitemap
-  `lastmod` in any commit that changes `index.html`. Still run the
-  `seo-structured-data-reviewer` agent after editing `index.html`.
+  `JSON_LD_ONLY` allowlist until the owner confirms them; don't add to it. Set the sitemap
+  `lastmod` to the commit's date in any commit that changes `index.html`, including a merge
+  commit that combines `index.html` edits from both sides. Still run the `seo-structured-data-reviewer` agent after
+  editing `index.html`.
 - Images live in `site/images/` and are **committed** to the repo (jpg + webp pairs).
 
 ## Merge authority
 
-Agents may merge their own PR without asking once all three hold: a code review ran on the diff (the `code-review` skill or the `pr-review-toolkit:code-reviewer` agent) and its real findings are fixed; CI is green on the pushed SHA; the branch is up to date with `origin/main`. The production deploy that the merge triggers is accepted. Ask first only when the PR drops or rewrites stored data (a destructive migration, a backfill that overwrites rows).
+Agents may merge their own PR without asking once all four hold. Run the git checks after
+`git fetch origin`, with `HEAD` at the pushed SHA.
+
+- A code review ran on the diff (the `code-review` skill or the `pr-review-toolkit:code-reviewer`
+  agent) and its real findings are fixed.
+- CI is green on the pushed SHA.
+- The branch has no conflict with `origin/main`. `git merge-tree --write-tree origin/main HEAD`
+  exits 0.
+- The branch and `origin/main` have not both changed `site/index.html` since their merge base.
+  `git diff --quiet origin/main...HEAD -- site/index.html` or
+  `git diff --quiet HEAD...origin/main -- site/index.html` exits 0.
+
+Merge with Forgejo's default `merge` style, which makes a merge commit. A branch behind `main`
+that meets all four merges as it is, with no CI re-run. Two PRs that each pass CI alone can still
+break `main` once both merge, and that risk is accepted. The deploy does not wait for CI, so check
+the CI run on `main` after the merge and fix a red one in a new PR.
+
+When the third or fourth condition fails, sync the branch, then check all four again:
+
+1. Merge `origin/main` into the branch and resolve any conflict.
+2. Follow the `lastmod` rule in Landmines.
+3. Run `bun test` and push.
+
+The fourth condition exists because the lastmod test dates a merge commit that combines both sides'
+`index.html` edits to the day of that merge. Forgejo's merge commit for such a branch turns
+`main` red with no conflict whenever the PR's `lastmod` is from an earlier day.
+
+The production deploy that the merge triggers is accepted. Ask first only when the PR drops or
+rewrites stored data (a destructive migration, a backfill that overwrites rows).
 
 ## Agent skills
 
