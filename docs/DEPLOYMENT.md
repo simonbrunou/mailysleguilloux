@@ -4,7 +4,7 @@
 merge to main on git.sbrn.eu (Forgejo)
     |  push webhook
     v
-homelab Coolify (application id 11, railpack build pack)
+homelab Coolify on CT 104 (application id 11, railpack build pack)
     |  builds, then runs `bun server.js` on port 3000
     v
 container on CT 116
@@ -14,9 +14,9 @@ Cloudflare edge (cache, Fonts, Email Address Obfuscation) -> mailysleguilloux.bz
 ```
 
 The `github` remote is a push mirror of Forgejo and plays no part in a deploy. There is no
-Dockerfile and no deploy config in the repo: Coolify's railpack build pack detects Bun and starts
-the `start` script in `package.json`. Production env (`RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`)
-lives in the Coolify app's environment variables.
+Dockerfile and no deploy config in the repo: the container runs the `start` script in
+`package.json` (`npm run start`), which railpack picks up on its own. Production env
+(`RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`) lives in the Coolify app's environment variables.
 
 ## How a deploy happens
 
@@ -63,10 +63,6 @@ the owner.
   `robots.txt`. To check content, grep the fetched page for your change, or run the facts guard on
   the live files: in a scratch worktree (`git worktree add --detach <dir> origin/main`), overwrite
   `site/index.html`, `site/sitemap.xml` and `site/robots.txt` with the fetched copies, then run
-  `bun test business-facts.test.js`.
-
-## Local development
-
-```sh
-bun server.js   # http://localhost:3000 (PORT overrides)
-```
+  `bun test business-facts.test.js`. The e-mail check only sees the JSON-LD copies on the live
+  page, since the edge obfuscates the others. Remove the scratch tree afterwards with
+  `git worktree remove --force <dir>`.
