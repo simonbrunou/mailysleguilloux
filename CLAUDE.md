@@ -9,7 +9,8 @@ site's primary purpose.**
 - No framework, no build step, no bundler. `site/index.html` is hand-authored with
   inlined `<style>` and `<script>`. Edit it directly.
 - Self-hosted on **Coolify behind a Cloudflare Tunnel**. Recently migrated OFF
-  Cloudflare Workers/R2 — do NOT reintroduce Workers/wrangler/R2 assumptions.
+  Cloudflare Workers/R2 — do NOT reintroduce Workers/wrangler/R2 assumptions. Checking a
+  deploy or the live site: `docs/DEPLOYMENT.md`.
 
 ## server.js + contact-intake.js (the only dynamic code)
 `server.js` is the **header policy** module and the only place the header policy lives. It serves
