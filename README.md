@@ -4,43 +4,35 @@ Static website for Mailys Le Guilloux - Guerisseuse et Kinesiologue.
 
 ## Deployment
 
-Hosted on **Cloudflare Pages** with auto-deploy from GitHub.
+Self-hosted on the homelab **Coolify** behind a **Cloudflare Tunnel**. Every merge to `main` on
+git.sbrn.eu deploys automatically.
 
 ### Infrastructure
 
-- **Site**: Cloudflare Pages (static files from `site/`)
-- **Domain**: `mailysleguilloux.bzh` (DNS managed by Cloudflare)
+- **Site**: a Bun server (`server.js`) serving `site/`, built and run by Coolify
+- **Domain**: `mailysleguilloux.bzh` (DNS and edge cache on Cloudflare)
 
 ### Files
 
 ```
 server.js                 # Bun server: serves site/, POST /contact, sets every response header
-site/                     # Website files (Pages build output)
+contact-intake.js         # POST /contact: validation, rate limit, Turnstile, Resend e-mail
+site/                     # Website files served by server.js
   index.html
   sitemap.xml
   robots.txt
-  images/                 # Images (served from CDN)
+  images/                 # Images (committed jpg + webp pairs)
 scripts/
   download-images.sh      # Download images from Wix (run once)
 docs/
-  DEPLOYMENT.md           # Full deployment guide
+  DEPLOYMENT.md           # How a deploy happens and how to check it
 ```
 
 ## Local Development
 
 ```bash
-cd site
-python3 -m http.server 8080
-# Open http://localhost:8080
+bun server.js
+# Open http://localhost:3000
 ```
 
-## Deploy
-
-Push to `main` to auto-deploy via Cloudflare Pages.
-
-Manual deploy:
-```bash
-npx wrangler pages deploy site --project-name=mailysleguilloux
-```
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup instructions.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for deploy checks and smoke tests.

@@ -1,114 +1,68 @@
-# Deployment Guide - mailysleguilloux.bzh
-
-## Architecture
+# Deployment: mailysleguilloux.bzh
 
 ```
-GitHub (push to main)
-    |
+merge to main on git.sbrn.eu (Forgejo)
+    |  push webhook
     v
-Cloudflare Pages (auto-deploy)
-    |
-    v  mailysleguilloux.bzh
-Cloudflare CDN (300+ edge locations)
+homelab Coolify on CT 104 (application id 11, railpack build pack)
+    |  builds, then runs `bun server.js` on port 3000
+    v
+container on CT 116
+    |  Cloudflare Tunnel
+    v
+Cloudflare edge (cache, Fonts, Email Address Obfuscation) -> mailysleguilloux.bzh
 ```
 
----
+The `github` remote is a push mirror of Forgejo and plays no part in a deploy. There is no
+Dockerfile and no deploy config in the repo: the container runs the `start` script in
+`package.json` (`npm run start`), which railpack picks up on its own. Production env
+(`RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`) lives in the Coolify app's environment variables.
 
-## 1. Deploy to Cloudflare Pages
+## How a deploy happens
 
-### Option A: Git integration (recommended)
+Merging to `main` starts a deploy within seconds. It usually finishes in under a minute (up to
+about 2 min). There is no manual deploy step and no staging environment: every merge to `main`
+ships.
 
-1. Push your repo to GitHub
-2. Go to **Cloudflare Dashboard** > **Workers & Pages** > **Create** > **Pages**
-3. Connect your GitHub repository
-4. Configure build settings:
-   - **Project name**: `mailysleguilloux`
-   - **Production branch**: `main`
-   - **Build command**: (leave empty)
-   - **Build output directory**: `site`
-5. Click **Save and Deploy**
+## Check the latest deploy
 
-Every push to `main` auto-deploys.
+The HTTP headers carry no deploy marker. On a cache miss, `last-modified` is the time of the
+request, not of the deploy. Check Coolify instead (both commands are read-only):
 
-### Option B: Direct upload via CLI
+```sh
+# Deploy rows: status should be `finished` and the commit the merge SHA.
+echo "select id,status,left(commit,8),created_at,updated_at from application_deployment_queues where application_id='11' order by id desc limit 3;" \
+  | ssh root@192.168.1.195 'pct exec 104 -- docker exec -i coolify-db psql -U coolify -d coolify -At -F "|"'
 
-```bash
-npx wrangler pages deploy site --project-name=mailysleguilloux
+# Running container: its image tag is the full merge SHA.
+ssh root@192.168.1.195 'pct exec 116 -- docker ps'
 ```
 
----
+## Smoke checks
 
-## 2. Custom Domain
+These never send the owner an e-mail:
 
-1. In Cloudflare Pages project > **Custom domains**
-2. Add `mailysleguilloux.bzh`
-3. Cloudflare auto-configures DNS (CNAME to Pages)
-4. Add `www.mailysleguilloux.bzh` as well (redirects to apex)
+| Request | Expected |
+|---|---|
+| `GET /` | 200 |
+| `GET /contact` | 405 |
+| `POST /contact` with body `{nope` | 400 `{"ok":false,"message":"Corps de requête invalide."}` |
 
-DNS records (auto-managed by Pages):
+A valid contact submission sends Maïlys a real e-mail through Resend. Leave real submissions to
+the owner.
 
-| Type  | Name | Content                          | Proxy     |
-|-------|------|----------------------------------|-----------|
-| CNAME | @    | `mailysleguilloux.pages.dev`     | Proxied   |
-| CNAME | www  | `mailysleguilloux.pages.dev`     | Proxied   |
+## Cloudflare edge
 
----
-
-## 3. Verify Deployment
-
-```bash
-# Test the site
-curl -I https://mailysleguilloux.bzh
-
-```
-
-Expected response:
-```
-HTTP/2 200
-content-type: text/html; charset=utf-8
-```
-
-Every response also carries the security headers and CSP set in `server.js`, the only place the header policy lives.
-
----
-
-## Local Development
-
-```bash
-cd site
-python3 -m http.server 8080
-# Open http://localhost:8080
-```
-
----
-
-## Maintenance
-
-### Redeploy manually (if not using Git integration)
-
-```bash
-npx wrangler pages deploy site --project-name=mailysleguilloux
-```
-
-### View deployment logs
-
-In Cloudflare Dashboard > **Workers & Pages** > **mailysleguilloux** > **Deployments**
-
----
-
-## Troubleshooting
-
-### Site not updating after push
-
-- Check Cloudflare Pages deployment status in the dashboard
-- Verify the build output directory is set to `site`
-- Check GitHub webhook delivery in repo Settings > Webhooks
-
-### DNS not resolving
-
-```bash
-dig mailysleguilloux.bzh
-# Should return Cloudflare IPs
-```
-
-If DNS doesn't resolve, verify the custom domain is configured in Pages settings.
+- **Edge cache**: Cloudflare caches the homepage, so right after a deploy `GET /` may still return
+  the previous page (`cf-cache-status: HIT`). Add a throwaway query string (`/?cb=123`) to get
+  the origin's copy.
+- **Rewritten files**: the served `index.html` and `robots.txt` never match the repo copies byte
+  for byte. Cloudflare Fonts replaces the Google Fonts `<link>`s with inline `@font-face` rules
+  loading from `/cf-fonts/`, Email Address Obfuscation turns `mailto:` links into
+  `/cdn-cgi/l/email-protection`, and Cloudflare prepends its managed Content-Signal block to
+  `robots.txt`. To check content, grep the fetched page for your change, or run the facts guard on
+  the live files: in a scratch worktree (`git worktree add --detach <dir> origin/main`), overwrite
+  `site/index.html`, `site/sitemap.xml` and `site/robots.txt` with the fetched copies, then run
+  `bun test business-facts.test.js`. The e-mail check only sees the JSON-LD copies on the live
+  page, since the edge obfuscates the others. Remove the scratch tree afterwards with
+  `git worktree remove --force <dir>`.
