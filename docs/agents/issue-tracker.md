@@ -2,13 +2,13 @@
 
 Issues and specs for this repo live as Forgejo issues on `git.sbrn.eu/simonbrunou/mailysleguilloux` (the `origin` remote). The `github` remote is a push-disabled mirror. GitHub Issues are enabled there but unused. Never file issues there.
 
-Use the [`fj`](https://codeberg.org/forgejo-contrib/forgejo-cli) CLI (v0.6.0) for everyday operations. The clone has two remotes and T3 worktree branches have no upstream, so `fj` cannot infer the repo on its own and fails with `no repo info specified`. Point it at the repo explicitly:
+Use the [`fj`](https://codeberg.org/forgejo-contrib/forgejo-cli) CLI (v0.7.0) for everyday operations. The clone has two remotes and T3 worktree branches have no upstream, so `fj` cannot infer the repo on its own and fails with `no repo info specified`. Point it at the repo explicitly:
 
-- `fj issue ...` subcommands take `-R origin` **after** the subcommand: `fj issue view -R origin 12`. Before the subcommand (`fj -R origin issue ...`) it fails with `unexpected argument '-R'`.
-- `fj pr ...` subcommands have no `-R`. Pass the host globally and qualify the number: `fj -H git.sbrn.eu pr view simonbrunou/mailysleguilloux#12`.
+- `fj issue` takes `-R origin` either after `issue` or after the subcommand: `fj issue -R origin view 12` and `fj issue view -R origin 12` both work. Before `issue` (`fj -R origin issue ...`) it still fails with `unexpected argument '-R' found`.
+- `fj pr` takes `-R origin` right after `pr`, before the subcommand: `fj pr -R origin view 12`. After the subcommand (`fj pr view -R origin 12`) it fails with `unexpected argument '-R' found`. The old `fj -H git.sbrn.eu pr view simonbrunou/mailysleguilloux#12` form still works.
 - `fj repo labels` takes the repo as an argument and also needs the host: `fj -H git.sbrn.eu repo labels simonbrunou/mailysleguilloux view`.
 
-`fj` has no JSON output and no dependency command, so for those call the Forgejo REST API with the token `fj` already stores:
+`fj` has no JSON output. It has dependency commands: `fj issue -R origin depend list <n>`, `depend add <issue> <target>...` and `depend remove`, the same under `block`, and under `fj pr` with the PR passed as `-p <n>` (`fj pr -R origin depend list -p <n>`). Only the `list` commands have been run against this Forgejo. For JSON and for adding a dependency, call the Forgejo REST API with the token `fj` already stores:
 
 ```sh
 FJ_TOKEN=$(jq -r '.hosts["git.sbrn.eu"].token' ~/.local/share/forgejo-cli/keys.json)
