@@ -8,7 +8,7 @@ Use the [`fj`](https://codeberg.org/forgejo-contrib/forgejo-cli) CLI (v0.7.0) fo
 - `fj pr` takes `-R origin` right after `pr`, before the subcommand: `fj pr -R origin view 12`. After the subcommand (`fj pr view -R origin 12`) it fails with `unexpected argument '-R' found`. The old `fj -H git.sbrn.eu pr view simonbrunou/mailysleguilloux#12` form still works.
 - `fj repo labels` takes the repo as an argument and also needs the host: `fj -H git.sbrn.eu repo labels simonbrunou/mailysleguilloux view`.
 
-`fj` has no JSON output. It has dependency commands (`fj issue -R origin depend list <n>`, `depend add <issue> <target>...` and `depend remove`, the same under `block`, and all of them again under `fj pr`), but only `list` has been run against this Forgejo. For JSON and for adding a dependency, call the Forgejo REST API with the token `fj` already stores:
+`fj` has no JSON output. It has dependency commands: `fj issue -R origin depend list <n>`, `depend add <issue> <target>...` and `depend remove`, the same under `block`, and under `fj pr` with the PR passed as `-p <n>` (`fj pr -R origin depend list -p <n>`). Only the `list` commands have been run against this Forgejo. For JSON and for adding a dependency, call the Forgejo REST API with the token `fj` already stores:
 
 ```sh
 FJ_TOKEN=$(jq -r '.hosts["git.sbrn.eu"].token' ~/.local/share/forgejo-cli/keys.json)
