@@ -6,6 +6,11 @@ site's primary purpose.**
 
 ## Stack & run
 - **Bun** only. `bun server.js` (start) · `bun test` (runs every `*.test.js`).
+- Where `bun` is not on `PATH`, run every `bun` command through the flake's dev shell:
+  `nix develop -c bun test`, `nix develop -c bun server.js`. `.envrc` loads that shell through
+  direnv, but an agent's shell does not run direnv's prompt hook, and a new T3 or
+  `/tmp` worktree is not `direnv allow`ed either. Use the dev shell's Bun, which `flake.lock`
+  pins, rather than `nix shell nixpkgs#bun`, which runs an unpinned Bun.
 - No framework, no build step, no bundler. `site/index.html` is hand-authored with
   inlined `<style>` and `<script>`. Edit it directly.
 - Self-hosted on **Coolify behind a Cloudflare Tunnel**. Recently migrated OFF
@@ -46,8 +51,8 @@ file actually served.
   intakes with fake adapters; keep `process.env` and `globalThis.fetch` out of them.
 - **Business facts are duplicated** across visible HTML, meta tags, 5 JSON-LD blocks,
   sitemap.xml and robots.txt (phone, email, address, geo, price, FAQ, testimonials, site URL,
-  image sizes). `business-facts.test.js` is the guard: `bun test` fails when two copies
-  disagree, so change every copy together. Facts that only the JSON-LD states sit on its
+  image sizes). `business-facts.test.js` guards them, so `bun test` fails when two copies
+  disagree. Change every copy together. Facts that only the JSON-LD states sit on its
   `JSON_LD_ONLY` allowlist until the owner confirms them; don't add to it. Set the sitemap
   `lastmod` to the commit's date in any commit that changes `index.html`, including a merge
   commit that combines `index.html` edits from both sides. Still run the `seo-structured-data-reviewer` agent after
@@ -77,7 +82,7 @@ When the third or fourth condition fails, sync the branch, then check all four a
 
 1. Merge `origin/main` into the branch and resolve any conflict.
 2. Follow the `lastmod` rule in Landmines.
-3. Run `bun test` and push.
+3. Run `bun test` (see Stack & run) and push.
 
 The fourth condition exists because the lastmod test dates a merge commit that combines both sides'
 `index.html` edits to the day of that merge. Forgejo's merge commit for such a branch turns
