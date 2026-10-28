@@ -65,7 +65,7 @@ Agents may merge their own PR without asking once all four hold. Run the git che
 `git fetch origin`, with `HEAD` at the pushed SHA.
 
 - A code review ran on the diff (the `code-review` skill or the `pr-review-toolkit:code-reviewer`
-  agent) and its real findings are fixed.
+  agent) and its real findings are fixed, nits aside (the global agent rules define a nit).
 - CI is green on the pushed SHA.
 - The branch has no conflict with `origin/main`. `git merge-tree --write-tree origin/main HEAD`
   exits 0.
